@@ -33,6 +33,19 @@
  * This file is derived from FNET as of version 3.0.0
  */
 
+static inline int fstn_ipv4_onlink(thr_s* thr,uint32be_t odp_ip){
+	netif_s* netif = thr->netif;
+	fstn_ipv4_t ip;
+	ip.as_odp = odp_ip;
+	return
+		((ip.as_odp & netif->ipv4_subnetmask) == netif->ipv4_subnet)
+		|| ((ip.addr[0]==169)&&(ip.addr[1]==254));
+	/* RFC3927: If the destination address is in the 169.254/16 prefix, then the sender
+            MUST send its packet directly to the destination on the same physical link.  This MUST be
+            done whether the interface is configured with a Link-Local or a routable IPv4 address.    */
+}
+
+
 /*
  * @brief processes an IPv4 Datagram
  * @param  pkt     the packet
@@ -154,6 +167,9 @@ void fstn_ipv4_output(odp_packet_t pkt, thr_s* thr){
 	eth_hdr = odp_packet_l2_ptr(pkt,NULL);
 	eth_hdr->src = thr->netif->eth_address;
 	
+	if(odp_unlikely(thr->netif->ipv4_route_off) || fstn_ipv4_onlink(thr,dst_ip) )
+		dst_ip = thr->netif->ipv4_gateway;
+
 	if(odp_likely(fstn_eth_ipv4_target_or_queue(thr,fstn_ipv4_cast(dst_ip),&hwaddr,pkt) )){
 		eth_hdr->dst = hwaddr;
 		fstn_eth_output(pkt,thr);

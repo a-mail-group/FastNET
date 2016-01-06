@@ -24,10 +24,15 @@
 
 typedef struct {
 	odph_ethaddr_t eth_address;
+	uint8_t        ipv4_route_off;
+	uint8_t        ipv6_route_off;
 	uint32be_t     ipv4_address;
 	uint32be_t     ipv4_netbroadcast;
-	void* ipv6_table;
-	uint8_t ttl;
+	uint32be_t     ipv4_subnetmask;
+	uint32be_t     ipv4_subnet;
+	uint32be_t     ipv4_gateway;
+	void*          ipv6_table;
+	uint8_t        ttl;
 } netif_s;
 
 typedef struct {
