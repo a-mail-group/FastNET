@@ -27,11 +27,23 @@
 #include <odp/helper/ip.h>
 #include "ip_addr_ext.h"
 #include "addrtable.h"
+#include "generic.h"
 
 
 /*
  * This file is derived from FNET as of version 3.0.0
  */
+
+#define FNET_ETH_MULTICAST_IP4_TO_MAC(ip4_addr, mac_addr)  \
+            do{   \
+                (mac_addr)[0] = 0x01U; \
+                (mac_addr)[1] = 0x00U; \
+                (mac_addr)[2] = 0x5EU; \
+                (mac_addr)[3] = (ip4_addr).addr[1] & 0x7FU; \
+                (mac_addr)[4] = (ip4_addr).addr[2];  \
+                (mac_addr)[5] = (ip4_addr).addr[3];  \
+            }while(0)
+
 
 static inline int fstn_ipv4_onlink(thr_s* thr,uint32be_t odp_ip){
 	netif_s* netif = thr->netif;
@@ -161,16 +173,22 @@ void fstn_ipv4_output(odp_packet_t pkt, thr_s* thr){
 
 	odph_ipv4_csum_update(pkt);
 	
-	if(odp_unlikely(!fstn_packet_add_l2(pkt,sizeof(odph_ethhdr_t),0)))
+	if(odp_unlikely(!fstn_packet_add_l2(pkt,sizeof(odph_ethhdr_t))))
 		goto DISCARD;
 
 	eth_hdr = odp_packet_l2_ptr(pkt,NULL);
 	eth_hdr->src = thr->netif->eth_address;
 	
-	if(odp_unlikely(thr->netif->ipv4_route_off) || fstn_ipv4_onlink(thr,dst_ip) )
+	if(odp_unlikely(thr->netif->ipv4_route_off) || !fstn_ipv4_onlink(thr,dst_ip) )
 		dst_ip = thr->netif->ipv4_gateway;
 
-	if(odp_likely(fstn_eth_ipv4_target_or_queue(thr,fstn_ipv4_cast(dst_ip),&hwaddr,pkt) )){
+	if(dst_ip == FSTN_IP4_BROADCAST){
+		fstn_ipv4_t ips;
+		ips.as_odp = dst_ip;
+		FNET_ETH_MULTICAST_IP4_TO_MAC(ips,hwaddr.addr);
+		eth_hdr->dst = hwaddr;
+		fstn_eth_output(pkt,thr);
+	}else if(odp_likely(fstn_eth_ipv4_target_or_queue(thr,fstn_ipv4_cast(dst_ip),&hwaddr,pkt) )){
 		eth_hdr->dst = hwaddr;
 		fstn_eth_output(pkt,thr);
 	}else{

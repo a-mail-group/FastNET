@@ -21,16 +21,28 @@
 #include "ipv6.h"
 
 #include "eth.h"
-#include "arp.h"
+
 #include "tcp.h"
 #include "udp.h"
 #include <odp/helper/ip.h>
 #include "ip_addr_ext.h"
 #include "addrtable.h"
+#include "generic.h"
 
 /*
  * This file is derived from FNET as of version 3.0.0
  */
+
+/* For IPv6 */
+#define FNET_ETH_MULTICAST_IP6_TO_MAC(ip6_addr, mac_addr)        \
+            do{   \
+                (mac_addr)[0] = 0x33U;               \
+                (mac_addr)[1] = 0x33U;               \
+                (mac_addr)[2] = (ip6_addr).addr[12]; \
+                (mac_addr)[3] = (ip6_addr).addr[13]; \
+                (mac_addr)[4] = (ip6_addr).addr[14]; \
+                (mac_addr)[5] = (ip6_addr).addr[15];  \
+            }while(0)
 
 
 static inline int fstn_ipv6_is_my_ip(thr_s* thr,fstn_ipv6_t ip){
@@ -109,5 +121,48 @@ void fstn_ipv6_input(odp_packet_t pkt, thr_s* thr){
  * This function sends an IPv6 Datagram.
  */
 void fstn_ipv6_output(odp_packet_t pkt, thr_s* thr){
+	odph_ipv6hdr_t* hdr = odp_packet_l3_ptr(pkt,NULL);
+	odph_ethhdr_t* eth_hdr;
+	odph_ethaddr_t hwaddr;
+	fstn_ipv6_t dst_ip = FSTN_IPV6_CAST(hdr->dst_addr);
+	uint32_t size;
+
+	/* Validate destination address. */
+    /* RFC3513: The unspecified address must not be used as the destination address
+     * of IPv6 packets or in IPv6 Routing Headers.*/ 
+	if( fstn_ipv6_equals((const uint64_t*)hdr->src_addr,(const uint64_t*)in6addr_any.addr))
+		goto DISCARD;
+	
+	hdr->ver_tc_flow = odp_cpu_to_be_32(0x60000000);
+	hdr->payload_len = odp_cpu_to_be_16(odp_packet_len(pkt)-odp_packet_l4_offset(pkt));
+	
+	if(!hdr->hop_limit)
+		hdr->hop_limit = thr->netif->ttl;
+	
+	//odph_ipv4_csum_update(pkt);
+	
+	if(odp_unlikely(!fstn_packet_add_l2(pkt,sizeof(odph_ethhdr_t))))
+		goto DISCARD;
+
+	eth_hdr = odp_packet_l2_ptr(pkt,NULL);
+	eth_hdr->src = thr->netif->eth_address;
+	
+	//if(odp_unlikely(thr->netif->ipv6_route_off) || fstn_ipv4_onlink(thr,dst_ip) )
+	//	dst_ip = thr->netif->ipv4_gateway;
+
+	if(  FNET_IP6_ADDR_IS_MULTICAST(dst_ip)  ){
+		FNET_ETH_MULTICAST_IP6_TO_MAC(dst_ip,hwaddr.addr);
+		eth_hdr->dst = hwaddr;
+		fstn_eth_output(pkt,thr);
+	} else if(odp_likely(fstn_eth_ipv6_target_or_queue(thr,dst_ip,&hwaddr,pkt) )) {
+		eth_hdr->dst = hwaddr;
+		fstn_eth_output(pkt,thr);
+	} else {
+		//fstn_arp_request(thr,dst_ip);
+	}
+
+	return;
+	DISCARD:
+	odp_packet_free(pkt);
 }
 

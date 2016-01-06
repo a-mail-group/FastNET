@@ -37,9 +37,9 @@ static inline fstn_ipv4_t fstn_ipv4_cast(uint32be_t ip){
 	return result;
 }
 
-#define FSTN_IPV6_EQUALS(a,b)  fstn_ipv6_equals((uint64_t*)(a).addr,(uint64_t*)(b).addr)
+#define FSTN_IPV6_EQUALS(a,b)  fstn_ipv6_equals((const uint64_t*)(a).addr,(const uint64_t*)(b).addr)
 
-static inline int fstn_ipv6_equals(uint64_t *a,uint64_t *b){
+static inline int fstn_ipv6_equals(const uint64_t *a,const uint64_t *b){
 	return (a[0]==b[0]) && (a[1]==b[1]);
 }
 
