@@ -25,6 +25,7 @@
 typedef struct {
 	odph_ethaddr_t eth_address;
 	uint32be_t     ipv4_address;
+	uint32be_t     ipv4_netbroadcast;
 } netif_s;
 
 typedef struct {

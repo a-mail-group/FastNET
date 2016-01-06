@@ -35,3 +35,5 @@ static inline int fstn_packet_add_l2(odp_packet_t pkt,uint32_t pre){
 	return 1;
 }
 
+void fstn_trimm_packet(odp_packet_t pkt,uint32_t len);
+
