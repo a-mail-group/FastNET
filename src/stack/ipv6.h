@@ -19,19 +19,24 @@
 #pragma once
 
 #include <odp.h>
-#include <odp/helper/eth.h>
-//#include <stdint.h>
+#include "typedefs.h"
 
-typedef struct {
-	odph_ethaddr_t eth_address;
-	uint32be_t     ipv4_address;
-	uint32be_t     ipv4_netbroadcast;
-	void* ipv6_table;
-} netif_s;
+/*
+ * @brief processes an IPv6 Datagram
+ * @param  pkt     the packet
+ * @param  thr     the thread-local struct
+ * 
+ * This function processes an IPv6 Datagram.
+ */
+void fstn_ipv6_input(odp_packet_t pkt, thr_s* thr);
 
-typedef struct {
-	netif_s* netif;
-} thr_s;
-
+/*
+ * @brief sends an IPv6 Datagram
+ * @param  pkt     the packet
+ * @param  thr     the thread-local struct
+ * 
+ * This function sends an IPv6 Datagram.
+ */
+void fstn_ipv6_output(odp_packet_t pkt, thr_s* thr);
 
 

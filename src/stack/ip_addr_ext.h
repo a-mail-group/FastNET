@@ -24,7 +24,7 @@
 
 #pragma once
 
-#include "ip_addr_ext.h"
+#include "ip_addr.h"
 
 /************************************************************************
 *    Definitions of five different classes.
@@ -56,4 +56,48 @@
 #define FNET_IP4_ADDR4(ipaddr)   ((fnet_uint8_t)(fnet_ntohl(ipaddr)) & 0xffU)
 
 #define FSTN_IP4_BROADCAST      0xFFFFFFFFU
+
+
+/*----------------  IPv6 ----------------------*/
+
+#define FNET_IP6_ADDR_INIT(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16)      \
+                            {{ (a1), (a2), (a3), (a4), (a5), (a6), (a7), (a8), (a9), (a10), (a11), (a12), (a13), (a14), (a15), (a16) }}
+
+/*
+ * Definition of some useful macros to handle IP6 addresses
+ */
+#define FNET_IP6_ADDR_ANY_INIT                      FNET_IP6_ADDR_INIT(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00)
+#define FNET_IP6_ADDR_LOOPBACK_INIT                 FNET_IP6_ADDR_INIT(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01)
+#define FNET_IP6_ADDR_NODELOCAL_ALLNODES_INIT       FNET_IP6_ADDR_INIT(0xff, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01)
+#define FNET_IP6_ADDR_INTFACELOCAL_ALLNODES_INIT    FNET_IP6_ADDR_INIT(0xff, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01)
+#define FNET_IP6_ADDR_LINKLOCAL_ALLNODES_INIT       FNET_IP6_ADDR_INIT(0xff, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01)
+#define FNET_IP6_ADDR_LINKLOCAL_ALLROUTERS_INIT     FNET_IP6_ADDR_INIT(0xff, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02)
+#define FNET_IP6_ADDR_LINKLOCAL_ALLV2ROUTERS_INIT   FNET_IP6_ADDR_INIT(0xff, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x16)
+#define FNET_IP6_ADDR_LINKLOCAL_PREFIX_INIT         FNET_IP6_ADDR_INIT(0xFE, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00)
+
+static const fstn_ipv6_t in6addr_any = FNET_IP6_ADDR_ANY_INIT;
+static const fstn_ipv6_t in6addr_loopback = FNET_IP6_ADDR_LOOPBACK_INIT;
+
+
+/* Unspecified.*/
+#define FNET_IP6_ADDR_IS_UNSPECIFIED(a) FSTN_IPV6_EQUALS((a),in6addr_any)
+
+/* Loopback.*/
+#define FNET_IP6_ADDR_IS_LOOPBACK(a) FSTN_IPV6_EQUALS((a),in6addr_loopback)
+
+/* Multicast. */
+#define FNET_IP6_ADDR_IS_MULTICAST(a)	((a).addr[0] == 0xffU)
+
+/* Unicast Scope.*/
+#define FNET_IP6_ADDR_IS_LINKLOCAL(a)	\
+    	(((a).addr[0] == 0xfeU) && (((a).addr[0] & 0xc0U) == 0x80U))
+#define FNET_IP6_ADDR_IS_SITELOCAL(a)	\
+    	(((a).addr[0] == 0xfeU) && (((a).addr[0] & 0xc0U) == 0xc0U))
+
+
+typedef struct {
+	uint16_t num;
+	fstn_ipv6_t* tab;
+} ipv6_table_s;
+
 

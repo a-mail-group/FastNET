@@ -22,9 +22,10 @@
 #include "icmp.h"
 #include "eth.h"
 #include "arp.h"
+#include "tcp.h"
+#include "udp.h"
 #include <odp/helper/ip.h>
 #include "ip_addr_ext.h"
-#include "tcp.h"
 #include "addrtable.h"
 
 
@@ -45,14 +46,13 @@ void fstn_ipv4_input(odp_packet_t pkt, thr_s* thr){
 	odph_ipv4hdr_t* hdr = odp_packet_l3_ptr(pkt,&len);
 	odph_ethhdr_t* eth_hdr = odp_packet_l2_ptr(pkt,NULL);
 
-	if(odp_unlikely( len < sizeof(odph_ipv4hdr_t) ))
+	if(odp_unlikely( len < ODPH_IPV4HDR_LEN ))
 		goto DISCARD;
 
 	src.as_odp = hdr->src_addr;
 	dst.as_odp = hdr->dst_addr;
-
 	
-	/* TODO: broadcast */
+	/* Is it for me? */
 	if(odp_unlikely(!(
 		(dst.as_odp == thr->netif->ipv4_address) ||
 		(dst.as_odp == thr->netif->ipv4_netbroadcast) ||
@@ -73,12 +73,15 @@ void fstn_ipv4_input(odp_packet_t pkt, thr_s* thr){
 		fstn_trimm_packet(pkt,ip_len+ip_off);
 
 	if(odp_likely(
-		(dst.as_odp != thr->netif->ipv4_netbroadcast) && (dst.as_odp != FSTN_IP4_BROADCAST) && (!FNET_IP4_ADDR_IS_MULTICAST(dst))
-		))
-		fstn_eth_ipv4_entry(thr,src,eth_hdr->src);
+		(dst.as_odp != thr->netif->ipv4_netbroadcast) &&
+		(dst.as_odp != FSTN_IP4_BROADCAST) &&
+		(!FNET_IP4_ADDR_IS_MULTICAST(dst))    ))
+			fstn_eth_ipv4_entry(thr,src,eth_hdr->src);
 
 	/* Reassembly.*/
-	if(odp_unlikely(ODPH_IPV4HDR_IS_FRAGMENT(odp_be_to_cpu_16(hdr->frag_offset)))) /* the MF bit or fragment offset is nonzero.*/
+	if(odp_unlikely(ODPH_IPV4HDR_IS_FRAGMENT(
+			odp_be_to_cpu_16(hdr->frag_offset))))
+			/* the MF bit or fragment offset is nonzero.*/
 	{ //TODO: fragmentation
     #if 0
 		// FNET_CFG_IP4_FRAGMENTATION

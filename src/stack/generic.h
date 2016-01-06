@@ -37,3 +37,13 @@ static inline int fstn_packet_add_l2(odp_packet_t pkt,uint32_t pre){
 
 void fstn_trimm_packet(odp_packet_t pkt,uint32_t len);
 
+uint64_t fstn_fnv1a (const uint8_t* pBuffer, const uint8_t* const pBufferEnd)
+{
+	const uint64_t  MagicPrime = 0x00000100000001b3;
+	uint64_t        Hash       = 0xcbf29ce484222325;
+	for ( ; pBuffer < pBufferEnd; pBuffer++) 
+		Hash = (Hash * MagicPrime) ^ *pBuffer;
+	return Hash;
+}
+
+
