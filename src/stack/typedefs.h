@@ -27,6 +27,7 @@ typedef struct {
 	uint32be_t     ipv4_address;
 	uint32be_t     ipv4_netbroadcast;
 	void* ipv6_table;
+	uint8_t ttl;
 } netif_s;
 
 typedef struct {

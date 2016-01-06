@@ -127,10 +127,25 @@ void fstn_ipv4_output(odp_packet_t pkt, thr_s* thr){
 	odph_ethhdr_t* eth_hdr;
 	odph_ethaddr_t hwaddr;
 	uint32be_t dst_ip = hdr->dst_addr;
+	uint32_t size;
 
 	if(hdr->src_addr == 0) /* 0 = inaddr_any */
 		hdr->src_addr = thr->netif->ipv4_address;
 	
+	size = odp_packet_l4_offset(pkt)-odp_packet_l3_offset(pkt);
+
+	if(odp_unlikely(size&3))
+		goto DISCARD;
+
+	hdr->ver_ihl = 0x40|(size>>2);
+	hdr->tos = 0;
+	hdr->tot_len = odp_cpu_to_be_16(odp_packet_len(pkt)-odp_packet_l3_offset(pkt));
+	hdr->id=0;
+	hdr->frag_offset = 0;
+	if(!hdr->ttl)
+		hdr->ttl = thr->netif->ttl;
+	
+
 	odph_ipv4_csum_update(pkt);
 	
 	if(odp_unlikely(!fstn_packet_add_l2(pkt,sizeof(odph_ethhdr_t),0)))
