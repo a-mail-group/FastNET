@@ -18,6 +18,7 @@
 
 #include "eth.h"
 #include "arp.h"
+#include "ipv4.h"
 //#include <odp/helper/eth.h>
 
 /*
@@ -36,7 +37,7 @@ void fstn_pkt_input(odp_packet_t pkt, thr_s* thr){
 	if(odp_packet_has_arp(pkt))
 		fstn_arp_input(pkt,thr);
 	else if(odp_packet_has_ipv4(pkt))
-		;
+		fstn_ipv4_input(pkt,thr);
 	else if(odp_packet_has_ipv6(pkt))
 		;
 

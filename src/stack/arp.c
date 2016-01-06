@@ -22,12 +22,13 @@
 #include "eth.h"
 #include "fnet_arp.h"
 #include "addrtable.h"
+#include "generic.h"
 
 /*
  * This file is derived from FNET as of version 3.0.0
  */
 
-/*
+/**
  * @brief processes an arp input packet
  * @param  pkt     the packet
  * @param  thr     the thread-local struct
@@ -54,11 +55,11 @@ void fstn_arp_input(odp_packet_t pkt, thr_s* thr){
 	sender_prot_addr = arp_hdr->sender_prot_addr;
 	targer_prot_addr = arp_hdr->targer_prot_addr;
 	if(sender_prot_addr == ipv4_address) {
-		/* TODO: raise error! */
+		/* TODO: raise error/warning! Duplicate IP address! */
 		goto DISCARD;
 	}
 	/*
-	if(targer_prot_addr == ipv4_address) // It's for me.
+	if(targer_prot_addr == ipv4_address) // It's for me. Who cares?
 		;
 	*/ 
 	
@@ -83,6 +84,61 @@ void fstn_arp_input(odp_packet_t pkt, thr_s* thr){
 		return;
 	}
 	
+	DISCARD:
+	odp_packet_free(pkt);
+}
+
+/**
+ * @brief Sends ARP request
+ * @param  pkt     the packet
+ * @param  thr     the thread-local struct
+ * 
+ * Sends ARP request.
+ */
+void fstn_arp_request(thr_s* thr, uint32be_t ipaddr) {
+    fnet_arp_header_t *arp_hdr;
+	odph_ethhdr_t *eth_hdr;
+
+	odp_packet_t pkt = fstn_alloc_packet(thr);
+	if(odp_unlikely(pkt==ODP_PACKET_INVALID)) return;
+
+	arp_hdr = odp_packet_push_tail(pkt,sizeof(fnet_arp_header_t));
+	if(odp_unlikely( !arp_hdr ))
+		goto DISCARD;
+
+	eth_hdr = odp_packet_push_head(pkt,sizeof(odph_ethhdr_t));
+	if(odp_unlikely( !eth_hdr ))
+		goto DISCARD;
+
+	eth_hdr->dst = fstn_eth_broadcast_addr;
+	eth_hdr->src = thr->netif->eth_address;
+	eth_hdr->type = odp_cpu_to_be_16(ODPH_ETHTYPE_ARP);
+	
+	arp_hdr->hard_type = odp_cpu_to_be_16(FNET_ARP_HARD_TYPE); /* The type of hardware address (=1 for
+	                                                              Ethernet).*/
+	arp_hdr->prot_type = odp_cpu_to_be_16(ODPH_ETHTYPE_IPV4);  /* The type of protocol address (=0x0800 for IP). */
+	arp_hdr->hard_size = FNET_ARP_HARD_SIZE;                   /* The size in bytes of the
+	                                                              hardware address (=6). */
+	arp_hdr->prot_size = FNET_ARP_PROT_SIZE;                   /* The size in bytes of the
+	                                                              protocol address (=4). */
+	arp_hdr->op = odp_cpu_to_be_16(FNET_ARP_OP_REQUEST);       /* Opcode. */
+
+	arp_hdr->target_hard_addr = fstn_eth_null_addr;
+	arp_hdr->sender_hard_addr = thr->netif->eth_address;
+
+	arp_hdr->targer_prot_addr = ipaddr;                   /* Protocol address of target of this packet.*/
+	arp_hdr->sender_prot_addr = thr->netif->ipv4_address; /* Protocol address of sender of this packet.*/
+
+	odp_packet_l2_offset_set(pkt,0);
+	odp_packet_l3_offset_set(pkt,sizeof(odph_ethhdr_t));
+	odp_packet_has_l2_set(pkt,1);
+	odp_packet_has_l3_set(pkt,1);
+	odp_packet_has_eth_set(pkt,1);
+	odp_packet_has_arp_set(pkt,1);
+
+	fstn_eth_output(pkt,thr);
+
+	return;
 	DISCARD:
 	odp_packet_free(pkt);
 }

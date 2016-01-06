@@ -18,17 +18,17 @@
 
 #pragma once
 
+#include <odp.h>
 #include "typedefs.h"
-#include "ip_addr.h"
-#include <odp/helper/eth.h>
 
+/*
+ * @brief processes an UDP packet
+ * @param  pkt     the packet
+ * @param  thr     the thread-local struct
+ * @return  true if packet has been consumed, false otherwise
+ * 
+ * This function processes an UDP packet
+ */
+int fstn_udp_input(odp_packet_t pkt, thr_s* thr);
 
-void fstn_eth_ipv4_entry(thr_s* thr, fstn_ipv4_t ip,odph_ethaddr_t eth);
-void fstn_eth_ipv6_entry(thr_s* thr, fstn_ipv6_t ip,odph_ethaddr_t eth);
-
-int fstn_eth_ipv4_target(thr_s* thr,fstn_ipv4_t ip,odph_ethaddr_t* eth);
-int fstn_eth_ipv6_target(thr_s* thr,fstn_ipv6_t ip,odph_ethaddr_t* eth);
-
-int fstn_eth_ipv4_target_or_queue(thr_s* thr,fstn_ipv4_t ip,odph_ethaddr_t* eth,odp_packet_t pkt);
-int fstn_eth_ipv6_target_or_queue(thr_s* thr,fstn_ipv6_t ip,odph_ethaddr_t* eth,odp_packet_t pkt);
 

@@ -19,16 +19,19 @@
 #pragma once
 
 #include "typedefs.h"
-#include "ip_addr.h"
-#include <odp/helper/eth.h>
 
+odp_packet_t fstn_alloc_packet(thr_s* thr);
 
-void fstn_eth_ipv4_entry(thr_s* thr, fstn_ipv4_t ip,odph_ethaddr_t eth);
-void fstn_eth_ipv6_entry(thr_s* thr, fstn_ipv6_t ip,odph_ethaddr_t eth);
-
-int fstn_eth_ipv4_target(thr_s* thr,fstn_ipv4_t ip,odph_ethaddr_t* eth);
-int fstn_eth_ipv6_target(thr_s* thr,fstn_ipv6_t ip,odph_ethaddr_t* eth);
-
-int fstn_eth_ipv4_target_or_queue(thr_s* thr,fstn_ipv4_t ip,odph_ethaddr_t* eth,odp_packet_t pkt);
-int fstn_eth_ipv6_target_or_queue(thr_s* thr,fstn_ipv6_t ip,odph_ethaddr_t* eth,odp_packet_t pkt);
+static inline int fstn_packet_add_l2(odp_packet_t pkt,uint32_t pre){
+	uint32_t l3,l4;
+	l3 = odp_packet_l3_offset(pkt);
+	l4 = odp_packet_l4_offset(pkt);
+	if(odp_unlikely(!odp_packet_push_head(pkt,pre)))
+		return 0;
+	l3+=pre;
+	l4+=pre;
+	odp_packet_l3_offset_set(pkt,l3);
+	odp_packet_l4_offset_set(pkt,l4);
+	return 1;
+}
 

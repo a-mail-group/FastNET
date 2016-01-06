@@ -21,6 +21,9 @@
 #include <odp.h>
 #include "typedefs.h"
 
+static const odph_ethaddr_t fstn_eth_null_addr = { { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 } };
+static const odph_ethaddr_t fstn_eth_broadcast_addr = { { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff } };
+
 
 /*
  * @brief processes an input packet
@@ -37,6 +40,7 @@ void fstn_pkt_input(odp_packet_t pkt, thr_s* thr);
  * @param  thr     the thread-local struct
  * 
  * This function sends an ethernet packet.
+ * IMPORTANT: The checksum shall be appended by this function!
  */
 void fstn_eth_output(odp_packet_t pkt, thr_s* thr);
 

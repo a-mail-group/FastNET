@@ -22,7 +22,7 @@
 #include "typedefs.h"
 
 
-/*
+/**
  * @brief processes an arp input packet
  * @param  pkt     the packet
  * @param  thr     the thread-local struct
@@ -30,5 +30,14 @@
  * ARP input function.
  */
 void fstn_arp_input(odp_packet_t pkt, thr_s* thr);
+
+/**
+ * @brief Sends ARP request
+ * @param  pkt     the packet
+ * @param  thr     the thread-local struct
+ * 
+ * Sends ARP request.
+ */
+void fstn_arp_request(thr_s* thr, uint32be_t ipaddr);
 
 

@@ -6,6 +6,7 @@ CFLAGS=-L$(DPDK)/lib -I$(DPDK)/include
 
 stack += src/stack/eth.o
 stack += src/stack/arp.o
+stack += src/stack/ipv4.o
 
 test:
 	echo $(CFLAGS)
