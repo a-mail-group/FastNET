@@ -1,5 +1,7 @@
 
+ifeq ($(DPDK),)
 DPDK=/home/simon/src_packages/odp_inst
+endif
 
 GCC=gcc
 CFLAGS=-L$(DPDK)/lib -I$(DPDK)/include
