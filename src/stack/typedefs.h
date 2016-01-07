@@ -25,7 +25,6 @@
 typedef struct {
 	odph_ethaddr_t eth_address;
 	uint8_t        ipv4_route_off;
-	uint8_t        ipv6_route_off;
 	uint32be_t     ipv4_address;
 	uint32be_t     ipv4_netbroadcast;
 	uint32be_t     ipv4_subnetmask;

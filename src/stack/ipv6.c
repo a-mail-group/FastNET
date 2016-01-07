@@ -139,17 +139,12 @@ void fstn_ipv6_output(odp_packet_t pkt, thr_s* thr){
 	if(!hdr->hop_limit)
 		hdr->hop_limit = thr->netif->ttl;
 	
-	//odph_ipv4_csum_update(pkt);
-	
 	if(odp_unlikely(!fstn_packet_add_l2(pkt,sizeof(odph_ethhdr_t))))
 		goto DISCARD;
 
 	eth_hdr = odp_packet_l2_ptr(pkt,NULL);
 	eth_hdr->src = thr->netif->eth_address;
 	
-	//if(odp_unlikely(thr->netif->ipv6_route_off) || fstn_ipv4_onlink(thr,dst_ip) )
-	//	dst_ip = thr->netif->ipv4_gateway;
-
 	if(  FNET_IP6_ADDR_IS_MULTICAST(dst_ip)  ){
 		FNET_ETH_MULTICAST_IP6_TO_MAC(dst_ip,hwaddr.addr);
 		eth_hdr->dst = hwaddr;

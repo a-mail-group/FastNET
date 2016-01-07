@@ -153,6 +153,7 @@ void fstn_ipv4_output(odp_packet_t pkt, thr_s* thr){
 	odph_ethaddr_t hwaddr;
 	uint32be_t dst_ip = hdr->dst_addr;
 	uint32_t size;
+	fstn_ipv4_t ips;
 
 	if(hdr->src_addr == 0) /* 0 = inaddr_any */
 		hdr->src_addr = thr->netif->ipv4_address;
@@ -170,7 +171,6 @@ void fstn_ipv4_output(odp_packet_t pkt, thr_s* thr){
 	if(!hdr->ttl)
 		hdr->ttl = thr->netif->ttl;
 	
-
 	odph_ipv4_csum_update(pkt);
 	
 	if(odp_unlikely(!fstn_packet_add_l2(pkt,sizeof(odph_ethhdr_t))))
@@ -182,13 +182,16 @@ void fstn_ipv4_output(odp_packet_t pkt, thr_s* thr){
 	if(odp_unlikely(thr->netif->ipv4_route_off) || !fstn_ipv4_onlink(thr,dst_ip) )
 		dst_ip = thr->netif->ipv4_gateway;
 
-	if(dst_ip == FSTN_IP4_BROADCAST){
-		fstn_ipv4_t ips;
-		ips.as_odp = dst_ip;
+	ips.as_odp = dst_ip;
+	
+	if(FNET_IP4_ADDR_IS_MULTICAST(ips)){
 		FNET_ETH_MULTICAST_IP4_TO_MAC(ips,hwaddr.addr);
 		eth_hdr->dst = hwaddr;
 		fstn_eth_output(pkt,thr);
-	}else if(odp_likely(fstn_eth_ipv4_target_or_queue(thr,fstn_ipv4_cast(dst_ip),&hwaddr,pkt) )){
+	}else if(dst_ip == FSTN_IP4_BROADCAST){
+		eth_hdr->dst = fstn_eth_broadcast_addr;
+		fstn_eth_output(pkt,thr);
+	}else if(odp_likely(fstn_eth_ipv4_target_or_queue(thr,ips,&hwaddr,pkt) )){
 		eth_hdr->dst = hwaddr;
 		fstn_eth_output(pkt,thr);
 	}else{
