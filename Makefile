@@ -8,6 +8,7 @@ stack += src/stack/eth.o
 stack += src/stack/arp.o
 stack += src/stack/ipv4.o
 stack += src/stack/ipv6.o
+stack += src/stack/icmp.o
 
 test:
 	echo $(CFLAGS)
