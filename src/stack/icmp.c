@@ -45,6 +45,8 @@ typedef struct ODP_PACKED {
 typedef struct ODP_PACKED {
 	odph_icmphdr_t header;
 	odph_ipv4hdr_t iph;
+	uint16be_t src_port;
+	uint16be_t dst_port;
 } fstn_icmp_err_t;
 
 /*
@@ -59,32 +61,16 @@ static void fstn_icmp_notify_protocol(thr_s *thr, fnotify_t prot_cmd, odp_packet
 	if(odp_unlikely( size<sizeof(fstn_icmp_err_t) ))
 		goto DISCARD;
 	odph_ipv4hdr_t          *ip_header = &hdr_err->iph;
-	const uint32_t          hdr_err_length = sizeof(fstn_icmp_err_t) /*+ ((FNET_IP_HEADER_GET_HEADER_LENGTH(ip_header) << 2) - sizeof(fnet_ip_header_t))*/; 
-	const uint32_t          hdr_err_data_length = hdr_err_length+8u; /* 8 bytes is enough for transport protocol (port numbers).*/
-	const uint32_t          pkt_shouldlen = hdr_err_data_length+odp_packet_l4_offset(pkt);
-	
-	
-//	if(odp_packet_len(pkt) > pkt_shouldlen)
-//		fstn_trimm_packet(pkt,pkt_shouldlen);
+	fstn_control_param_t ctrl;
 
-#if 0 // TODO: Propagate the messages to upper level.
-    if((protocol = fnet_prot_find(AF_INET, SOCK_UNSPEC, (fnet_uint32_t)hdr_err->ip.protocol)) != 0)
-    {
-        if(protocol->prot_control_input)
-        {
-            struct sockaddr     err_src_addr;
-            struct sockaddr     err_dest_addr;
+	ctrl.src_port = hdr_err->src_port;
+	ctrl.dst_port = hdr_err->dst_port;
+	ctrl.src_ip.ipv4 = ip_header->src_addr;
+	ctrl.dst_ip.ipv4 = ip_header->dst_addr;
+	ctrl.protocol = ip_header->proto;
+	fstn_protoc_notify(thr, &ctrl, pkt);
 
-            /* Prepare addreses for upper protocol.*/
-            fnet_ip_set_socket_addr(netif, ip_header, &err_src_addr,  &err_dest_addr );
-
-            fnet_netbuf_trim(&nb, (fnet_int32_t)(hdr_err_length)); /* Cut the ICMP error header.*/
-
-            protocol->prot_control_input(prot_cmd, &err_src_addr, &err_dest_addr, nb);
-        }
-    }
-#endif
-
+	return;
 DISCARD:
      odp_packet_free(pkt);
 }
@@ -171,7 +157,7 @@ void fstn_icmp_input(odp_packet_t pkt, thr_s* thr){
                 fstn_swap_ip_addr(pkt, thr);
                 fstn_icmp_output(pkt, thr);
                 break;
-#endif                
+#endif
             /**************************
              * ICMP Error Processing
              **************************/

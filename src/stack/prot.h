@@ -44,3 +44,17 @@ typedef enum
     FNET_PROT_NOTIFY_PARAMPROB         /* Header incorrect.*/
 } fnotify_t;
 
+typedef union {
+	uint32be_t ipv4;
+	uint8_t    ipv6[16];
+} fstn_ip_address_generic_t;
+
+typedef struct {
+	fstn_ip_address_generic_t src_ip, dst_ip;
+	uint16be_t src_port, dst_port;
+	uint8_t protocol;
+} fstn_control_param_t;
+
+void fstn_protoc_notify(thr_s* thr, fstn_control_param_t* ctrl, odp_packet_t pkt);
+
+
