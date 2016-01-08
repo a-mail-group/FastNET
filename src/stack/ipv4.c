@@ -133,7 +133,7 @@ void fstn_ipv4_input(odp_packet_t pkt, thr_s* thr){
 	
 	return;
 	ICMP_ERROR:
-	fstn_icmp_error(thr, FNET_ICMP_UNREACHABLE, FNET_ICMP_UNREACHABLE_PROTOCOL,pkt);
+	fstn_icmp_error(thr, FNET_ICMP_UNREACHABLE, FNET_ICMP_UNREACHABLE_PROTOCOL, pkt);
 
 	return;
 	DISCARD:
@@ -175,6 +175,9 @@ void fstn_ipv4_output(odp_packet_t pkt, thr_s* thr){
 	
 	if(odp_unlikely(!fstn_packet_add_l2(pkt,sizeof(odph_ethhdr_t))))
 		goto DISCARD;
+
+	odp_packet_has_l2_set(pkt,1);
+	odp_packet_has_eth_set(pkt,1);
 
 	eth_hdr = odp_packet_l2_ptr(pkt,NULL);
 	eth_hdr->src = thr->netif->eth_address;

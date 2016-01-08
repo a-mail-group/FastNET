@@ -67,6 +67,12 @@
 #define FNET_ICMP_MASKREQ                  (17u) /* Address mask request.*/
 #define FNET_ICMP_MASKREPLY                (18u) /* Address mask reply.*/
 
+/* The macros returns TRUE if "type" is an ICMP request or response type and FALSE if it is an error type. */     
+#define FNET_ICMP_IS_QUERY_TYPE(type)  (((type) == FNET_ICMP_ECHO) || ((type) == FNET_ICMP_ECHOREPLY) ||     \
+                                        ((type) == FNET_ICMP_TSTAMP) || ((type) == FNET_ICMP_TSTAMPREPLY) || \
+                                        ((type) == FNET_ICMP_IREQ) || ((type) == FNET_ICMP_IREQREPLY) ||     \
+                                        ((type) == FNET_ICMP_MASKREQ) || ((type) == FNET_ICMP_MASKREPLY) ||  \
+                                        ((type) == FNET_ICMP_ROUTERADVERT) || ((type) == FNET_ICMP_ROUTERSOLICIT) )
 
 /*
  * @brief processes an icmp packet
@@ -93,6 +99,6 @@ void fstn_icmp_output(odp_packet_t pkt, thr_s* thr);
  * 
  * This function sends an icmp error message.
  */
-void fstn_icmp_error(thr_s* thr, uint16_t type,uint16_t code,odp_packet_t cause);
+void fstn_icmp_error(thr_s* thr, uint8_t type,uint8_t code,odp_packet_t cause);
 
 

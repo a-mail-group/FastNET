@@ -11,6 +11,7 @@ stack += src/stack/arp.o
 stack += src/stack/ipv4.o
 stack += src/stack/ipv6.o
 stack += src/stack/icmp.o
+stack += src/stack/icmp6.o
 
 test:
 	echo $(CFLAGS)

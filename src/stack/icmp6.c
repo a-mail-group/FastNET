@@ -1,6 +1,8 @@
 /*
  *
  * Copyright 2016 Simon Schmidt
+ * Copyright 2011-2015 by Andrey Butok. FNET Community.
+ * Copyright 2008-2010 by Andrey Butok. Freescale Semiconductor, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
@@ -16,28 +18,14 @@
  *
  */
 
-#pragma once
+#include "ipv6.h"
+#include "icmp6.h"
+#include "ip_addr_ext.h"
+#include "prot.h"
+#include <odp/helper/icmp.h>
+#include <odp/helper/ip.h>
+#include "generic.h"
 
-#include <odp.h>
-#include <odp/helper/eth.h>
-//#include <stdint.h>
-
-typedef struct {
-	odph_ethaddr_t eth_address;
-	uint8_t        ipv4_route_off;
-	uint32be_t     ipv4_address;
-	uint32be_t     ipv4_netbroadcast;
-	uint32be_t     ipv4_subnetmask;
-	uint32be_t     ipv4_subnet;
-	uint32be_t     ipv4_gateway;
-	void*          ipv6_table;
-	uint8_t        ttl;
-	uint16_t       mtu;
-} netif_s;
-
-typedef struct {
-	netif_s* netif;
-} thr_s;
-
-
-
+/*
+ * This file is derived from FNET as of version 3.0.0
+ */

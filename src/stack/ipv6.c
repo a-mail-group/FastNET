@@ -19,7 +19,7 @@
  */
 
 #include "ipv6.h"
-
+#include "icmp6.h"
 #include "eth.h"
 
 #include "tcp.h"
@@ -63,7 +63,7 @@ static inline int fstn_ipv6_is_my_ip(thr_s* thr,fstn_ipv6_t ip){
  */
 void fstn_ipv6_input(odp_packet_t pkt, thr_s* thr){
 	fstn_ipv6_t src,dst;
-	uint32_t len,payload_len,payload_off;
+	uint32_t len,payload_len,payload_off,ip_off;
 	odph_ipv6hdr_t* hdr = odp_packet_l3_ptr(pkt,&len);
 	odph_ethhdr_t* eth_hdr = odp_packet_l2_ptr(pkt,NULL);
 	
@@ -83,6 +83,7 @@ void fstn_ipv6_input(odp_packet_t pkt, thr_s* thr){
 		)))
 		goto DISCARD;
 
+	ip_off = odp_packet_l3_offset(pkt);
 	payload_off = odp_packet_l4_offset(pkt);
 	len = odp_packet_len(pkt)-payload_off;
 
@@ -101,12 +102,12 @@ void fstn_ipv6_input(odp_packet_t pkt, thr_s* thr){
 		if(odp_unlikely(!fstn_udp_input(pkt,thr)))
 			goto ICMP_ERROR;
 	} else if(odp_packet_has_icmp(pkt)) {
-		//fstn_icmp_input(pkt,thr);
+		fstn_icmp6_input(pkt,thr);
 	} else goto ICMP_ERROR;
 	
 	return;
 	ICMP_ERROR:
-	//fstn_icmp_error(thr, FNET_ICMP_UNREACHABLE, FNET_ICMP_UNREACHABLE_PROTOCOL,pkt);
+	fstn_icmp6_error(thr, FNET_ICMP6_TYPE_PARAM_PROB, FNET_ICMP6_CODE_PP_NEXT_HEADER, payload_off-ip_off, pkt);
 
 	return;
 	DISCARD:

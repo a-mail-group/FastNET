@@ -18,6 +18,7 @@
  *
  */
 
+#include "ipv4.h"
 #include "icmp.h"
 #include "ip_addr_ext.h"
 #include "prot.h"
@@ -265,7 +266,21 @@ void fstn_icmp_input(odp_packet_t pkt, thr_s* thr){
  * 
  * This function sends an icmp packet.
  */
-//void fstn_icmp_output(odp_packet_t pkt, thr_s* thr);
+void fstn_icmp_output(odp_packet_t pkt, thr_s* thr){
+	uint32_t size;
+	if(odp_unlikely(!fstn_packet_cut_l2(pkt)))
+		goto DISCARD;
+
+	odph_icmphdr_t *hdr = odp_packet_l4_ptr(pkt,&size);
+	hdr->chksum = 0u;
+	hdr->chksum = odp_chksum(hdr, size);
+
+	fstn_ipv4_output(pkt,thr);
+
+	return;
+	DISCARD:
+	odp_packet_free(pkt);
+}
 
 /*
  * @brief sends an icmp error message
@@ -274,6 +289,79 @@ void fstn_icmp_input(odp_packet_t pkt, thr_s* thr){
  * 
  * This function sends an icmp error message.
  */
-//void fstn_icmp_error(thr_s* thr, uint16_t type,uint16_t code,odp_packet_t cause);
+void fstn_icmp_error(thr_s* thr, uint8_t type, uint8_t code, odp_packet_t cause){
+	uint32_t size_errorpkt;
+	uint32_t size;
+	uint8_t ctype;
+
+	fstn_ipv4_t src,dst;
+	odph_ipv4hdr_t *iph  = odp_packet_l3_ptr(cause,&size);
+	size_errorpkt = (ODPH_IPV4HDR_IHL(iph->ver_ihl)<<2)+8;
+
+	src.as_odp = iph->src_addr;
+	dst.as_odp = iph->dst_addr;
+
+	/* Do not send error if not the first fragment of message (RFC1122)*/
+	if(ODPH_IPV4HDR_FRAG_OFFSET(iph->frag_offset)>0)
+		goto DISCARD;
+
+	/* Do not send error on ICMP error messages*/
+	if(odp_packet_has_icmp(cause)){
+		ctype = ((odph_icmphdr_t*)odp_packet_l4_ptr(cause,NULL))->type;
+		if( odp_unlikely(!FNET_ICMP_IS_QUERY_TYPE(ctype)) )
+			goto DISCARD;
+	}
+
+	/* Do not send error on a datagram whose source address does not define a single
+	 * host -- e.g., a zero address, a loopback address, a
+	 * broadcast address, a multicast address, or a Class E
+	 * address.*/
+	if(odp_unlikely(
+		(dst.as_odp == thr->netif->ipv4_netbroadcast) ||
+		(src.as_odp == thr->netif->ipv4_netbroadcast) ||
+		(FNET_IP4_ADDR_IS_MULTICAST(dst)) || (FNET_IP4_ADDR_IS_MULTICAST(src)) ||
+		(FNET_IP4_CLASS_E(dst)) ||
+		(dst.as_odp == FSTN_IP4_BROADCAST) || (src.as_odp == FSTN_IP4_BROADCAST)
+	))
+		goto DISCARD;
+
+	odp_packet_t pkt = fstn_alloc_packet(thr);
+	if(odp_unlikely(pkt==ODP_PACKET_INVALID))
+		goto DISCARD;
+
+	if(odp_likely(size>size_errorpkt))
+		size = size_errorpkt;
+
+	odp_packet_push_tail(pkt,size);
+	odp_packet_copydata_in(pkt,0,size,iph);
+
+
+	odph_icmphdr_t *icmp = odp_packet_push_head(pkt,sizeof(odph_icmphdr_t));
+	icmp->un.gateway = 0;
+	if(type == FNET_ICMP_PARAMPROB){
+		*((uint8_t*)(&icmp->un)) = code;
+		code = 0;
+	}else if(code == FNET_ICMP_UNREACHABLE_NEEDFRAG) {
+		icmp->un.frag.mtu = odp_cpu_to_be_16( thr->netif->mtu );
+	}
+
+	icmp->type = type;
+	icmp->code = code;
+
+	odph_ipv4hdr_t *niph = odp_packet_push_head(pkt,sizeof(odph_ipv4hdr_t));
+	niph->ttl = iph->ttl;
+	niph->dst_addr = iph->src_addr;
+	niph->src_addr = iph->dst_addr;
+
+	odp_packet_has_l3_set(pkt,1);
+	odp_packet_has_ipv4_set(pkt,1);
+	odp_packet_l3_offset_set(pkt,0);
+	odp_packet_l4_offset_set(pkt,sizeof(odph_ipv4hdr_t));
+
+	fstn_ipv4_output(pkt,thr);
+
+	DISCARD:
+	odp_packet_free(cause);
+}
 
 

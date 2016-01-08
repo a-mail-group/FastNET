@@ -30,7 +30,19 @@ static inline int fstn_packet_add_l2(odp_packet_t pkt,uint32_t pre){
 		return 0;
 	l3+=pre;
 	l4+=pre;
+	odp_packet_l2_offset_set(pkt,0);
 	odp_packet_l3_offset_set(pkt,l3);
+	odp_packet_l4_offset_set(pkt,l4);
+	return 1;
+}
+static inline int fstn_packet_cut_l2(odp_packet_t pkt){
+	uint32_t l3,l4;
+	l3 = odp_packet_l3_offset(pkt);
+	l4 = odp_packet_l4_offset(pkt);
+	l4-=l3;
+	if(odp_unlikely(!odp_packet_pull_head(pkt,l3)))
+		return 0;
+	odp_packet_l3_offset_set(pkt,0);
 	odp_packet_l4_offset_set(pkt,l4);
 	return 1;
 }
