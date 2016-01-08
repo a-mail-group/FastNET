@@ -36,6 +36,7 @@ static inline void fstn_swap_ip_addr(odp_packet_t pkt, thr_s* thr) {
 	odph_ipv4hdr_t* hdr = odp_packet_l3_ptr(pkt,NULL);
 	hdr->dst_addr = hdr->src_addr;
 	hdr->src_addr = thr->netif->ipv4_address;
+	hdr->ttl      = 0;
 }
 
 typedef struct ODP_PACKED {
@@ -89,8 +90,6 @@ DISCARD:
 void fstn_icmp_input(odp_packet_t pkt, thr_s* thr){
 	odph_icmphdr_t      *hdr;
     fnotify_t           prot_cmd;
-    //uint32be_t          src_ip;
-    //uint32be_t          dest_ip;
 	fstn_ipv4_t         dest_ip;
 	uint32_t            size;
 	
@@ -98,7 +97,7 @@ void fstn_icmp_input(odp_packet_t pkt, thr_s* thr){
 	if(odp_unlikely( size<ODPH_ICMPHDR_LEN ))
 		goto DISCARD;
 	
-	dest_ip.as_odp = ((odph_ipv4hdr_t*)odp_packet_l4_ptr(pkt,NULL))->src_addr;
+	dest_ip.as_odp = ((odph_ipv4hdr_t*)odp_packet_l4_ptr(pkt,NULL))->dst_addr;
 
 	switch(hdr->type){
             /**************************
@@ -275,6 +274,8 @@ void fstn_icmp_output(odp_packet_t pkt, thr_s* thr){
 	hdr->chksum = 0u;
 	hdr->chksum = odp_chksum(hdr, size);
 
+	((odph_ipv4hdr_t*)odp_packet_l3_ptr(pkt,NULL))->proto = ODPH_IPPROTO_ICMP;
+
 	fstn_ipv4_output(pkt,thr);
 
 	return;
@@ -349,7 +350,7 @@ void fstn_icmp_error(thr_s* thr, uint8_t type, uint8_t code, odp_packet_t cause)
 	icmp->code = code;
 
 	odph_ipv4hdr_t *niph = odp_packet_push_head(pkt,sizeof(odph_ipv4hdr_t));
-	niph->ttl = iph->ttl;
+	niph->ttl = 0;
 	niph->dst_addr = iph->src_addr;
 	niph->src_addr = iph->dst_addr;
 
@@ -358,7 +359,7 @@ void fstn_icmp_error(thr_s* thr, uint8_t type, uint8_t code, odp_packet_t cause)
 	odp_packet_l3_offset_set(pkt,0);
 	odp_packet_l4_offset_set(pkt,sizeof(odph_ipv4hdr_t));
 
-	fstn_ipv4_output(pkt,thr);
+	fstn_icmp_output(pkt,thr);
 
 	DISCARD:
 	odp_packet_free(cause);

@@ -31,6 +31,7 @@ typedef struct {
 	uint32be_t     ipv4_subnet;
 	uint32be_t     ipv4_gateway;
 	void*          ipv6_table;
+	uint8_t        ipv6_address[16]; /* < default IPv6 address*/
 	uint8_t        ttl;
 	uint16_t       mtu;
 } netif_s;
