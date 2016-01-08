@@ -52,7 +52,9 @@ typedef union {
 typedef struct {
 	fstn_ip_address_generic_t src_ip, dst_ip;
 	uint16be_t src_port, dst_port;
+	fnotify_t prot_cmd;
 	uint8_t protocol;
+	int v6 : 1; /* IPv6 if 1, IPv4 if 0 */
 } fstn_control_param_t;
 
 void fstn_protoc_notify(thr_s* thr, fstn_control_param_t* ctrl, odp_packet_t pkt);

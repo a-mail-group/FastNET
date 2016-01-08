@@ -68,6 +68,8 @@ static void fstn_icmp_notify_protocol(thr_s *thr, fnotify_t prot_cmd, odp_packet
 	ctrl.src_ip.ipv4 = ip_header->src_addr;
 	ctrl.dst_ip.ipv4 = ip_header->dst_addr;
 	ctrl.protocol = ip_header->proto;
+	ctrl.prot_cmd = prot_cmd;
+	ctrl.v6 = 0; /* 0 = IPv4 */
 	fstn_protoc_notify(thr, &ctrl, pkt);
 
 	return;
