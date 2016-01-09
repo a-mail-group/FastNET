@@ -20,6 +20,7 @@
 
 #include "ipv6.h"
 #include "icmp6.h"
+#include "nd6.h"
 #include "ip_addr_ext.h"
 #include "prot.h"
 #include <odp/helper/icmp.h>
@@ -98,25 +99,25 @@ void fstn_icmp6_input(odp_packet_t pkt, thr_s* thr){
              * Neighbor Solicitation.
              **************************/
             case FNET_ICMP6_TYPE_NEIGHBOR_SOLICITATION:
-                //fnet_nd6_neighbor_solicitation_receive(netif, src_ip, dest_ip, nb, ip6_nb);
+                fstn_nd6_neighbor_solicitation_receive(pkt,thr);
                 break;
             /**************************
              * Neighbor Advertisemnt.
              **************************/            
             case FNET_ICMP6_TYPE_NEIGHBOR_ADVERTISEMENT:
-                //fnet_nd6_neighbor_advertisement_receive(netif, src_ip, dest_ip, nb, ip6_nb);
+                fstn_nd6_neighbor_advertisement_receive(pkt,thr);
                 break;                
             /**************************
              * Router Advertisemnt.
              **************************/
             case FNET_ICMP6_TYPE_ROUTER_ADVERTISEMENT:
-                //fnet_nd6_router_advertisement_receive(netif, src_ip, dest_ip, nb, ip6_nb);
+                fstn_nd6_router_advertisement_receive(pkt,thr);
                 break; 
             /**************************
              * Router Advertisemnt.
              **************************/
             case FNET_ICMP6_TYPE_REDIRECT:
-                //fnet_nd6_redirect_receive(netif, src_ip, dest_ip, nb, ip6_nb);
+                fstn_nd6_redirect_receive(pkt,thr);
                 break;
         #if 0 //FNET_CFG_MLD 
             /**************************
