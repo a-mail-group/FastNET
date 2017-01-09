@@ -13,23 +13,29 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
-#pragma once
+#include <net/in_tlp.h>
 
-#include <odp_api.h>
-#include <net/header/ip.h>
+#include <net/packet_input.h>
+#include <net/header/layer4.h>
 
-#define NET_NIF_MAX_QUEUE 128
+static
+netpp_retcode_t def_protocol(odp_packet_t pkt){
+	return NETPP_DROP;
+}
 
-struct ipv4_nif_struct;
 
-typedef struct _nif_t {
-	odp_pktio_t pktio;
-	odp_queue_t output[NET_NIF_MAX_QUEUE];
-	odp_queue_t loopback;
-	
-	int num_queues;
-	
-	struct ipv4_nif_struct *ipv4;
-} nif_t;
+struct fn_transport_layer_protocol fn_in_protocols[] = {
+	{
+		.in_protocol = IP_PROTOCOL_TCP,
+		.in_hook = fastnet_tcp_input,
+	},
+	{
+		.in_pt = INPT_DEFAULT,
+		.in_hook = def_protocol,
+	},
+};
+const unsigned int          fn_in_protocols_n = sizeof(fn_in_protocols)/sizeof(struct fn_transport_layer_protocol);
 
+int fn_in4_protocol_idx[256];
+int fn_in6_protocol_idx[256];
 

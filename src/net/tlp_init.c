@@ -13,23 +13,30 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
-#pragma once
+#include <net/in_tlp.h>
+#include <stdlib.h>
 
-#include <odp_api.h>
-#include <net/header/ip.h>
+#if 1
+#define ASSERT(i) if(!(i)) abort()
+#else
+#endif
 
-#define NET_NIF_MAX_QUEUE 128
-
-struct ipv4_nif_struct;
-
-typedef struct _nif_t {
-	odp_pktio_t pktio;
-	odp_queue_t output[NET_NIF_MAX_QUEUE];
-	odp_queue_t loopback;
+static void init(){
+	int i;
+	int idefault = -1;
 	
-	int num_queues;
+	ASSERT(fn_in_protocols_n>0);
 	
-	struct ipv4_nif_struct *ipv4;
-} nif_t;
+	for(i=0;i<fn_in_protocols_n;++i){
+		if(fn_in_protocols[i].in_pt!=INPT_DEFAULT) continue;
+		idefault = i;
+		break;
+	}
+	ASSERT(i >= 0);
+	
+}
 
 
+void fastnet_tlp_init(){
+	init();
+}

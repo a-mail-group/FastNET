@@ -15,21 +15,18 @@
  */
 #pragma once
 
-#include <odp_api.h>
-#include <net/header/ip.h>
 
-#define NET_NIF_MAX_QUEUE 128
-
-struct ipv4_nif_struct;
-
-typedef struct _nif_t {
-	odp_pktio_t pktio;
-	odp_queue_t output[NET_NIF_MAX_QUEUE];
-	odp_queue_t loopback;
-	
-	int num_queues;
-	
-	struct ipv4_nif_struct *ipv4;
-} nif_t;
+#define IP_PROTOCOL_HOPOPTS 0x00 /* Hop by hop.*/
+#define IP_PROTOCOL_ICMP    0x01
+#define IP_PROTOCOL_IGMP    0x02
+#define IP_PROTOCOL_TCP     0x06
+#define IP_PROTOCOL_UDP     0x11
+#define IP_PROTOCOL_ROUTE   0x2B /* IPv6 Routing header. */
+#define IP_PROTOCOL_GRE     0x2F
+#define IP_PROTOCOL_FRAG    0x2C /* IPv6 Fragment */
+#define IP_PROTOCOL_ESP     0x32 /* IPSec Encapsulated Payload */
+#define IP_PROTOCOL_AH      0x33 /* IPSec Authentication Header */
+#define IP_PROTOCOL_ICMP6   0x3A
+#define IP_PROTOCOL_INVALID 0xFF /* Reserved invalid by IANA */
 
 

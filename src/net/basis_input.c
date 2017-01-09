@@ -1,5 +1,5 @@
 /*
- *   Copyright 2016 Simon Schmidt
+ *   Copyright 2017 Simon Schmidt
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -50,7 +50,7 @@ error:
 	odp_packet_free(pkt);
 }
 
-void *fastnet_eventlist(void *arg){
+int fastnet_eventlist(void *arg){
 	odp_event_t ev;
 	odp_queue_t src_queue;
 	odp_event_t events[BURST_SIZE];
@@ -73,5 +73,6 @@ void *fastnet_eventlist(void *arg){
 			}
 		}
 	}
+	return 0;
 }
 

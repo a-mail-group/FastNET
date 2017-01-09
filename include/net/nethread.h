@@ -1,5 +1,5 @@
 /*
- *   Copyright 2017 Simon Schmidt
+ *   Copyright 2016 Simon Schmidt
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -15,21 +15,4 @@
  */
 #pragma once
 
-#include <odp_api.h>
-#include <net/header/ip.h>
-
-#define NET_NIF_MAX_QUEUE 128
-
-struct ipv4_nif_struct;
-
-typedef struct _nif_t {
-	odp_pktio_t pktio;
-	odp_queue_t output[NET_NIF_MAX_QUEUE];
-	odp_queue_t loopback;
-	
-	int num_queues;
-	
-	struct ipv4_nif_struct *ipv4;
-} nif_t;
-
-
+int fastnet_eventlist(void *arg);

@@ -14,22 +14,28 @@
  *   limitations under the License.
  */
 #pragma once
-
+#include <net/types.h>
 #include <odp_api.h>
-#include <net/header/ip.h>
 
-#define NET_NIF_MAX_QUEUE 128
+typedef netpp_retcode_t (*netpp_cb6_t)(odp_packet_t pkt,int* nxt, int idx);
 
-struct ipv4_nif_struct;
+enum {
+	INPT_PROTOCOL=0,
+	INPT_DEFAULT,
+	INPT_DEFAULT6,
+	INPT_IPV6_ONLY,
+};
 
-typedef struct _nif_t {
-	odp_pktio_t pktio;
-	odp_queue_t output[NET_NIF_MAX_QUEUE];
-	odp_queue_t loopback;
-	
-	int num_queues;
-	
-	struct ipv4_nif_struct *ipv4;
-} nif_t;
+struct fn_transport_layer_protocol {
+	uint8_t     in_protocol;
+	uint8_t     in_pt;
+	netpp_cb_t  in_hook;
+	netpp_cb6_t in6_hook;
+};
 
+extern struct fn_transport_layer_protocol fn_in_protocols[];
+extern const unsigned int                 fn_in_protocols_n;
+
+extern int fn_in4_protocol_idx[];
+extern int fn_in6_protocol_idx[];
 

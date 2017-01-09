@@ -13,23 +13,18 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
-#pragma once
+#include <net/nif.h>
+#include <net/types.h>
+#include <net/config.h>
+#include <net/header/iphdr.h>
 
-#include <odp_api.h>
-#include <net/header/ip.h>
+#include <net/in_tlp.h>
 
-#define NET_NIF_MAX_QUEUE 128
-
-struct ipv4_nif_struct;
-
-typedef struct _nif_t {
-	odp_pktio_t pktio;
-	odp_queue_t output[NET_NIF_MAX_QUEUE];
-	odp_queue_t loopback;
+netpp_retcode_t fastnet_tcp_input(odp_packet_t pkt){
+	odp_packet_l4_ptr(pkt,NULL);
 	
-	int num_queues;
-	
-	struct ipv4_nif_struct *ipv4;
-} nif_t;
+	return NETPP_DROP;
+}
+
 
 

@@ -1,5 +1,5 @@
 /*
- *   Copyright 2016 Simon Schmidt
+ *   Copyright 2017 Simon Schmidt
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -18,12 +18,20 @@
 #include <net/types.h>
 
 #define NET_NIFTAB_MAX_NIFS 128
+#define NET_MAXTHREAD 128
 
 typedef struct {
-	nif_t      table[NET_NIFTAB_MAX_NIFS];
-	int        max;
-	netpp_cb_t function;
+	nif_t          table[NET_NIFTAB_MAX_NIFS];
+	int            max;
+	netpp_cb_t     function;
+	odp_cpumask_t  cpumask;
+	int            workers;
+	odp_instance_t instance;
 } nif_table_t;
+
+void fastnet_tlp_init();
+
+int fastnet_niftable_prepare(nif_table_t* table,odp_instance_t instance);
 
 /*
  * Opens a device to include into the given NIF-TABLE.
@@ -32,3 +40,5 @@ typedef struct {
  */
 int fastnet_openpktio(nif_table_t* table,const char* dev,odp_pool_t pool);
 
+
+void fastnet_runthreads(nif_table_t* table);

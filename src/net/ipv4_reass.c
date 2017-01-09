@@ -13,23 +13,16 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
-#pragma once
+#include <net/ipv4.h>
+#include <net/header/iphdr.h>
 
-#include <odp_api.h>
-#include <net/header/ip.h>
-
-#define NET_NIF_MAX_QUEUE 128
-
-struct ipv4_nif_struct;
-
-typedef struct _nif_t {
-	odp_pktio_t pktio;
-	odp_queue_t output[NET_NIF_MAX_QUEUE];
-	odp_queue_t loopback;
+void fastnet_ip_reass(odp_packet_t* __restrict__ pkt){
+	uint16_t frag = odp_be_to_cpu_16(((fnet_ip_header_t *)odp_packet_l3_ptr(*pkt,NULL))->flags_fragment_offset);
 	
-	int num_queues;
+	/* TODO: reass. */
+	if(odp_unlikely(frag & ~FNET_IP_DF)){
+		odp_packet_free(*pkt);
+		*pkt = ODP_PACKET_INVALID;
+	}
 	
-	struct ipv4_nif_struct *ipv4;
-} nif_t;
-
-
+}

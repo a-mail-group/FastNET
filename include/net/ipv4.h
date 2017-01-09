@@ -16,20 +16,22 @@
 #pragma once
 
 #include <odp_api.h>
+#include <net/nif.h>
 #include <net/header/ip.h>
 
-#define NET_NIF_MAX_QUEUE 128
+struct ipv4_nif_struct{
+	ipv4_addr_t
+		netbroadcast,
+		subnetbroadcast,
+		subnet,
+		subnetmask,
+		address;
+};
 
-struct ipv4_nif_struct;
+int fastnet_ip_broadcast(struct ipv4_nif_struct *ipv4,ipv4_addr_t addr);
+int fastnet_ip_onlink   (struct ipv4_nif_struct *ipv4,ipv4_addr_t addr);
+int fastnet_ip_ishost   (struct ipv4_nif_struct *ipv4,ipv4_addr_t addr);
 
-typedef struct _nif_t {
-	odp_pktio_t pktio;
-	odp_queue_t output[NET_NIF_MAX_QUEUE];
-	odp_queue_t loopback;
-	
-	int num_queues;
-	
-	struct ipv4_nif_struct *ipv4;
-} nif_t;
+void fastnet_ip_reass(odp_packet_t *pkt);
 
 
