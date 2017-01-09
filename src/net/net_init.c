@@ -34,7 +34,7 @@ int fastnet_niftable_prepare(nif_table_t* table,odp_instance_t instance) {
 }
 
 
-int fastnet_openpktio(nif_table_t* table,const char* dev,odp_pool_t pool) {
+nif_t* fastnet_openpktio(nif_table_t* table,const char* dev,odp_pool_t pool) {
 	odp_pktio_t              pktio;
 	odp_pktio_param_t        pktio_p;
 	odp_pktin_queue_param_t  pktin_qp;
@@ -55,6 +55,7 @@ int fastnet_openpktio(nif_table_t* table,const char* dev,odp_pool_t pool) {
 	
 	nif = &(table->table[table->max]);
 	nif->loopback = loop;
+	nif->ipv4 = 0;
 	
 	/*
 	 * Open network interface.
@@ -134,7 +135,7 @@ int fastnet_openpktio(nif_table_t* table,const char* dev,odp_pool_t pool) {
 	 */
 	table->max++;
 	
-	return 1;
+	return nif;
 error1:
 	odp_pktio_close(pktio);
 error2:

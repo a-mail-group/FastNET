@@ -17,6 +17,8 @@
 #include <stdlib.h>
 #include <odp_api.h>
 #include <net/niftable.h>
+#include <net/ipv4.h>
+#include <net/header/ip.h>
 
 #define EXAMPLE_ABORT(...) do{ printf(__VA_ARGS__); abort(); }while(0)
 
@@ -61,6 +63,10 @@ int main(){
 	//odph_odpthread_params_t thr_params;
 	odp_pktio_t pktio;
 	nif_table_t *table;
+	nif_t *nif;
+	struct ipv4_nif_struct* ipv4;
+	ipv4 = calloc(sizeof(*ipv4),1);
+	fastnet_ip_set(ipv4,ipv4_addr_init(10,0,3,9),ipv4_addr_init(0xff,0xff,0,0));
 	
 	/* ---------------------Packet IO Code.----------------------- */
 	odp_init_global(&instance, NULL, NULL);
@@ -83,8 +89,10 @@ int main(){
 	//pktio = create_pktio("eth0",pool);
 	if(!fastnet_niftable_prepare(table,instance))
 		EXAMPLE_ABORT("Error: nif-table init failed.\n");
-	if(!fastnet_openpktio(table,"vmbridge0",pool))
+	nif = fastnet_openpktio(table,"vmbridge0",pool);
+	if(!nif)
 		EXAMPLE_ABORT("Error: pktio create failed.\n");
+	nif->ipv4 = ipv4;
 	table->function = handle_packet;
 	
 	/* ---------------------Thread Code.----------------------- */

@@ -19,6 +19,14 @@
 #include <net/ipv4.h>
 #include <odp_api.h>
 
+void fastnet_ip_set(struct ipv4_nif_struct *ipv4,ipv4_addr_t addr,ipv4_addr_t subnetmask){
+	ipv4->address = addr;
+	ipv4->subnetmask = subnetmask;
+	ipv4->subnet = addr & subnetmask;
+	ipv4->subnetbroadcast = addr | ~subnetmask;
+	ipv4->netbroadcast = ipv4->subnetbroadcast;
+}
+
 int fastnet_ip_broadcast(struct ipv4_nif_struct *ipv4,ipv4_addr_t addr){
 	if(
 		IP4ADDR_EQ(addr,IP4_ADDR_BROADCAST)|| /* Limited broadcast */

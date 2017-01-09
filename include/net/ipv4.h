@@ -28,6 +28,7 @@ struct ipv4_nif_struct{
 		address;
 };
 
+void fastnet_ip_set     (struct ipv4_nif_struct *ipv4,ipv4_addr_t addr,ipv4_addr_t subnetmask);
 int fastnet_ip_broadcast(struct ipv4_nif_struct *ipv4,ipv4_addr_t addr);
 int fastnet_ip_onlink   (struct ipv4_nif_struct *ipv4,ipv4_addr_t addr);
 int fastnet_ip_ishost   (struct ipv4_nif_struct *ipv4,ipv4_addr_t addr);

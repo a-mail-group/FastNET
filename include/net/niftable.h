@@ -38,7 +38,7 @@ int fastnet_niftable_prepare(nif_table_t* table,odp_instance_t instance);
  *
  * Returns non-0 on success, 0 on failure.
  */
-int fastnet_openpktio(nif_table_t* table,const char* dev,odp_pool_t pool);
+nif_t* fastnet_openpktio(nif_table_t* table,const char* dev,odp_pool_t pool);
 
 
 void fastnet_runthreads(nif_table_t* table);
