@@ -89,7 +89,7 @@ int main(){
 	//pktio = create_pktio("eth0",pool);
 	if(!fastnet_niftable_prepare(table,instance))
 		EXAMPLE_ABORT("Error: nif-table init failed.\n");
-	nif = fastnet_openpktio(table,"vmbridge0",pool);
+	nif = fastnet_openpktio(table,"tap:tap1",pool);
 	if(!nif)
 		EXAMPLE_ABORT("Error: pktio create failed.\n");
 	nif->ipv4 = ipv4;
