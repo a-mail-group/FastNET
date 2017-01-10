@@ -13,11 +13,17 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
-#pragma once
+#include <net/nif.h>
+#include <net/types.h>
+#include <net/_config.h>
+#include <net/header/udphdr.h>
 
-//#define NET_MAX_PERFORMACE
+#include <net/in_tlp.h>
 
-#define NET_DO_LOG 1
-
-#define NET_ASSERTIONS 1
+netpp_retcode_t fastnet_udp_input(odp_packet_t pkt){
+	fnet_udp_header_t *uh = odp_packet_l4_ptr(pkt,NULL);
+	
+	NET_LOG("UDP datagram: %d->%d\n",(int)odp_be_to_cpu_16(uh->source_port),(int)odp_be_to_cpu_16(uh->destination_port));
+	return NETPP_DROP;
+}
 

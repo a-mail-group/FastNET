@@ -15,9 +15,14 @@
  */
 #pragma once
 
-//#define NET_MAX_PERFORMACE
+#include <net/types.h>
+#include <net/nif.h>
+#include <net/header/ip.h>
 
-#define NET_DO_LOG 1
+typedef struct {
+	ipv4_addr_t ip_gateway;
+	nif_t*      nif;
+} ip_next_hop_t;
 
-#define NET_ASSERTIONS 1
+netpp_retcode_t fastnet_ip_output(odp_packet_t pkt,ip_next_hop_t* nh);
 

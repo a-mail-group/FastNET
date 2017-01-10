@@ -18,6 +18,7 @@
 #include <odp_api.h>
 #include <net/niftable.h>
 #include <net/ipv4.h>
+#include <net/packet_input.h>
 #include <net/header/ip.h>
 
 #define EXAMPLE_ABORT(...) do{ printf(__VA_ARGS__); abort(); }while(0)
@@ -93,7 +94,8 @@ int main(){
 	if(!nif)
 		EXAMPLE_ABORT("Error: pktio create failed.\n");
 	nif->ipv4 = ipv4;
-	table->function = handle_packet;
+	//table->function = handle_packet;
+	table->function = fastnet_classified_input;
 	
 	/* ---------------------Thread Code.----------------------- */
 	

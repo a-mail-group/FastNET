@@ -1,5 +1,7 @@
 /*
- *   Copyright 2017 Simon Schmidt
+ *   Copyright 2016-2017 Simon Schmidt
+ * Copyright 2011-2016 by Andrey Butok. FNET Community.
+ * Copyright 2008-2010 by Andrey Butok. Freescale Semiconductor, Inc.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -16,21 +18,20 @@
 #pragma once
 
 #include <odp_api.h>
-#include <net/header/ip.h>
 
-#define NET_NIF_MAX_QUEUE 128
 
-struct ipv4_nif_struct;
+/*
+ * The 'EtherType' value for implemented protocols like IP and ARP.
+ */
+#define NETPROT_L3_IPV4   0x0800
+#define NETPROT_L3_ARP    0x0806
 
-typedef struct _nif_t {
-	odp_pktio_t pktio;
-	odp_queue_t output[NET_NIF_MAX_QUEUE];
-	odp_queue_t loopback;
-	
-	int num_queues;
-	
-	uint64_t    hwaddr;
-	struct ipv4_nif_struct *ipv4;
-} nif_t;
+#define NETPROT_L3_IPV6   0x86DD
 
+typedef struct ODP_PACKED
+{
+    uint8_t destination_addr[6]    ;   /**< 48-bit destination address.*/
+    uint8_t source_addr[6]         ;   /**< 48-bit source address.*/
+    uint16_t   type                ;   /**< 16-bit type field.*/
+} fnet_eth_header_t;
 

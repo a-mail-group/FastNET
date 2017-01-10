@@ -14,10 +14,19 @@
  *   limitations under the License.
  */
 #pragma once
+#include <net/config.h>
 
-//#define NET_MAX_PERFORMACE
+#ifdef NET_DO_LOG
+#include <stdio.h>
+#define NET_LOG(...) printf(__VA_ARGS__)
+#else
+#define NET_LOG(...) (void)0
+#endif
 
-#define NET_DO_LOG 1
-
-#define NET_ASSERTIONS 1
-
+#ifdef NET_ASSERTIONS
+#include <stdio.h>
+#include <stdlib.h>
+#define NET_ASSERT(n,...) do if(n){ printf("" __VA_ARGS__); abort(); }while(0)
+#else
+#define NET_ASSERT(...) (void)0
+#endif

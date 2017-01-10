@@ -13,11 +13,18 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
-#pragma once
+#include <net/nif.h>
+#include <net/types.h>
+#include <net/config.h>
+#include <net/header/iphdr.h>
+#include <net/header/udphdr.h>
+//#include <net/in_tlp.h>
 
-//#define NET_MAX_PERFORMACE
+static inline netpp_retcode_t fastnet_ip_output(odp_packet_t pkt,void* uu){
+	return NETPP_DROP;
+}
 
-#define NET_DO_LOG 1
-
-#define NET_ASSERTIONS 1
+netpp_retcode_t fastnet_udp_output(odp_packet_t pkt){
+	
+}
 

@@ -15,14 +15,15 @@
  */
 #include <net/nif.h>
 #include <net/types.h>
-#include <net/config.h>
-#include <net/header/iphdr.h>
+#include <net/_config.h>
+#include <net/header/tcphdr.h>
 
 #include <net/in_tlp.h>
 
 netpp_retcode_t fastnet_tcp_input(odp_packet_t pkt){
-	odp_packet_l4_ptr(pkt,NULL);
+	fnet_tcp_header_t* th = odp_packet_l4_ptr(pkt,NULL);
 	
+	NET_LOG("TCP segment: %d->%d\n",(int)odp_be_to_cpu_16(th->source_port),(int)odp_be_to_cpu_16(th->destination_port));
 	return NETPP_DROP;
 }
 

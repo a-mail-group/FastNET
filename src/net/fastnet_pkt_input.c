@@ -15,7 +15,7 @@
  */
 #include <net/nif.h>
 #include <net/types.h>
-#include <net/config.h>
+#include <net/_config.h>
 #include <net/header/iphdr.h>
 #include <net/packet_input.h>
 #include <net/in_tlp.h>
@@ -47,8 +47,6 @@ netpp_retcode_t fastnet_ip_input(odp_packet_t pkt){
 		if(pkt==ODP_PACKET_INVALID) return NETPP_CONSUMED;
 		
 		return fn_in_protocols[fn_in4_protocol_idx[next_header]].in_hook(pkt);
-	}else{
-		ip = NULL;
 	}
 	
 	/* TODO: forward */
@@ -59,6 +57,7 @@ netpp_retcode_t fastnet_classified_input(odp_packet_t pkt){
 	if(odp_packet_has_ipv4(pkt))
 		return fastnet_ip_input(pkt);
 	
+	//if(odp_packet_has_ipv6(pkt)) NET_LOG("Has IPv6 packet!\n");
 	return NETPP_DROP;
 }
 
