@@ -18,6 +18,8 @@
 #include <net/_config.h>
 #include <net/header/iphdr.h>
 #include <net/header/ethhdr.h>
+#include <net/packet_output.h>
+#include <net/checksum.h>
 
 struct ip_local_info{
 	ip_next_hop_t*    nh;
@@ -125,7 +127,7 @@ static
 netpp_retcode_t ipv4_add_eth(odp_packet_t pkt,struct ip_local_info* __restrict__  odata) {
 	uint32_t ethsize,ipoff;
 	void* ethp;
-	int haseth,hasifip;
+	int hasifip;
 	uint64_t src,dst;
 	ipv4_addr_t dst_ip = odata->ip->desination_addr;
 	ipv4_addr_t ifip;
@@ -138,7 +140,6 @@ netpp_retcode_t ipv4_add_eth(odp_packet_t pkt,struct ip_local_info* __restrict__
 		hasifip = 0;
 	}
 	
-	haseth = odp_packet_has_l2(pkt);
 	ethsize = sizeof(fnet_eth_header_t);
 	ipoff = odp_packet_l3_offset(pkt);
 	
@@ -165,6 +166,7 @@ netpp_retcode_t ipv4_add_eth(odp_packet_t pkt,struct ip_local_info* __restrict__
 }
 
 netpp_retcode_t fastnet_ip_output(odp_packet_t pkt,ip_next_hop_t* nh){
+	uint32_t pretrail;
 	netpp_retcode_t ret;
 	struct ip_local_info odata;
 	
@@ -179,12 +181,23 @@ netpp_retcode_t fastnet_ip_output(odp_packet_t pkt,ip_next_hop_t* nh){
 	ret = ipv4_find_route(&odata);
 	if(odp_unlikely(ret != NETPP_CONTINUE)) return ret;
 	
+	odata.ip->checksum = fastnet_checksum(pkt,odp_packet_l3_offset(pkt),0,odata.outnif,NIFOFL_IP4_CKSUM);
+	
 	ret = ipv4_add_eth(pkt,&odata);
 	if(odp_unlikely(ret != NETPP_CONTINUE)) return ret;
 	
-	
-	
-	return NETPP_DROP;
+	if(odata.is_loopback)
+		return fastnet_pkt_loopback(pkt,odata.outnif);
+	else{
+		/*
+		 * Do we have any data in front of the Layer 2 header? Get Rid of it!
+		 */
+		pretrail = odp_packet_l2_offset(pkt);
+		if(odp_unlikely(pretrail>0))
+			odp_packet_pull_head(pkt,pretrail);
+		
+		return fastnet_pkt_output(pkt,odata.outnif);
+	}
 }
 
 

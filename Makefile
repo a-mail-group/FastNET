@@ -24,7 +24,9 @@ net += src/net/fastnet_udp_input.o
 net += src/net/fastnet_ipv4_output.o
 net += src/net/fastnet_tcp_output.o
 net += src/net/fastnet_udp_output.o
+net += src/net/fastnet_pkt_output.o
 
+net += src/net/fastnet_checksum.o
 net += src/net/basis_input.o
 net += src/net/in_tlp.o
 net += src/net/ipv4check.o

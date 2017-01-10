@@ -13,18 +13,22 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
+#pragma once
 #include <net/nif.h>
 #include <net/types.h>
-#include <net/_config.h>
-#include <net/header/udphdr.h>
+#include <net/header/ip.h>
+#include <net/header/ip6.h>
 
-#include <net/in_tlp.h>
+typedef struct fastnet_ipv6_pair{
+	ipv6_addr_t src,dst;
+} fastnet_ipv6_pair_t;
+struct fastnet_ipv4_pair{
+	ipv4_addr_t src,dst;
+};
+typedef union fastnet_ip_pair{
+	struct fastnet_ipv6_pair* ipv6;
+	struct fastnet_ipv4_pair  ipv4;
+} fastnet_ip_pair_t;
 
-netpp_retcode_t fastnet_udp_input(odp_packet_t pkt){
-	fnet_udp_header_t *uh = odp_packet_l4_ptr(pkt,NULL);
-	
-	NET_LOG("UDP datagram: %d->%d\n",(int)odp_be_to_cpu_16(uh->source_port),(int)odp_be_to_cpu_16(uh->destination_port));
-	
-	return NETPP_DROP;
-}
+netpp_retcode_t fastnet_udp_output(odp_packet_t pkt, fastnet_ip_pair_t addrs, uint16_t srcport, uint16_t dstport, odp_bool_t isipv6);
 

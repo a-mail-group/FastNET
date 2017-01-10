@@ -26,10 +26,11 @@
                                                              * default to 1 for all multicast IP datagrams, so that an explicit
                                                              * choice is required to multicast beyond a single network.
                                                              */
+#if 0
 #define FNET_UDP_DF             (FNET_FALSE)                       /* DF flag.*/
 #define FNET_UDP_TX_BUF_MAX     (FNET_CFG_SOCKET_UDP_TX_BUF_SIZE) /* Default maximum size for send socket buffer.*/
 #define FNET_UDP_RX_BUF_MAX     (FNET_CFG_SOCKET_UDP_RX_BUF_SIZE) /* Default maximum size for receive socket buffer.*/
-
+#endif
 
 #include <odp_api.h>
 

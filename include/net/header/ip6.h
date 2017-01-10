@@ -1,5 +1,7 @@
 /*
- *   Copyright 2017 Simon Schmidt
+ *   Copyright 2016-2017 Simon Schmidt
+ *   Copyright 2011-2016 by Andrey Butok. FNET Community.
+ *   Copyright 2008-2010 by Andrey Butok. Freescale Semiconductor, Inc.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -13,18 +15,20 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
-#include <net/nif.h>
-#include <net/types.h>
-#include <net/_config.h>
-#include <net/header/udphdr.h>
+#pragma once
 
-#include <net/in_tlp.h>
+#include <odp_api.h>
 
-netpp_retcode_t fastnet_udp_input(odp_packet_t pkt){
-	fnet_udp_header_t *uh = odp_packet_l4_ptr(pkt,NULL);
-	
-	NET_LOG("UDP datagram: %d->%d\n",(int)odp_be_to_cpu_16(uh->source_port),(int)odp_be_to_cpu_16(uh->destination_port));
-	
-	return NETPP_DROP;
-}
+union ipv6_addr {
+	uint8_t  addr[16];
+	uint32_t addr32[4] ODP_PACKED;
+} ODP_PACKED;
+typedef union ipv6_addr ipv6_addr_t;
+
+#define IP6ADDR_EQ(a,b) ( \
+	((a).addr32[0]==(b).addr32[0]) &&\
+	((a).addr32[1]==(b).addr32[1]) &&\
+	((a).addr32[2]==(b).addr32[2]) &&\
+	((a).addr32[3]==(b).addr32[3]) \
+)
 

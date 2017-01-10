@@ -13,18 +13,12 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
+#pragma once
 #include <net/nif.h>
-#include <net/types.h>
-#include <net/_config.h>
-#include <net/header/udphdr.h>
+#include <net/header/ip.h>
+#include <net/header/ip6.h>
 
-#include <net/in_tlp.h>
-
-netpp_retcode_t fastnet_udp_input(odp_packet_t pkt){
-	fnet_udp_header_t *uh = odp_packet_l4_ptr(pkt,NULL);
-	
-	NET_LOG("UDP datagram: %d->%d\n",(int)odp_be_to_cpu_16(uh->source_port),(int)odp_be_to_cpu_16(uh->destination_port));
-	
-	return NETPP_DROP;
-}
+uint16_t fastnet_checksum(odp_packet_t pkt,uint32_t offset,uint32_t cksuminit,nif_t* nif,uint32_t offload_flags);
+uint16_t fastnet_ip_ph(ipv4_addr_t src,ipv4_addr_t dst,uint8_t prot);
+uint16_t fastnet_ip6_ph(ipv6_addr_t src,ipv6_addr_t dst,uint8_t prot);
 
