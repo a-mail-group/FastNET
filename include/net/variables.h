@@ -13,32 +13,9 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
-#include <net/in_tlp.h>
-#include <stdlib.h>
-#include <net/ipv4_mac_cache.h>
+#pragma once
+#include <odp_api.h>
 
-#if 1
-#define ASSERT(i) if(!(i)) abort()
-#else
-#endif
+extern uint16_t fastnet_arp_cache_timeout;
+extern uint16_t fastnet_arp_cache_timeout_soft;
 
-static void init(){
-	int i;
-	int idefault = -1;
-	
-	ASSERT(fn_in_protocols_n>0);
-	
-	for(i=0;i<fn_in_protocols_n;++i){
-		if(fn_in_protocols[i].in_pt!=INPT_DEFAULT) continue;
-		idefault = i;
-		break;
-	}
-	ASSERT(i >= 0);
-	
-}
-
-
-void fastnet_tlp_init(){
-	fastnet_initialize_ipmac_cache();
-	init();
-}

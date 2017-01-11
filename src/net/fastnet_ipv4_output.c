@@ -181,7 +181,7 @@ netpp_retcode_t fastnet_ip_output(odp_packet_t pkt,ip_next_hop_t* nh){
 	ret = ipv4_find_route(&odata);
 	if(odp_unlikely(ret != NETPP_CONTINUE)) return ret;
 	
-	odata.ip->checksum = fastnet_checksum(pkt,odp_packet_l3_offset(pkt),0,odata.outnif,NIFOFL_IP4_CKSUM);
+	odata.ip->checksum = fastnet_checksum(pkt,odp_packet_l3_offset(pkt),0,odata.outnif,0); // NIFOFL_IP4_CKSUM
 	
 	ret = ipv4_add_eth(pkt,&odata);
 	if(odp_unlikely(ret != NETPP_CONTINUE)) return ret;

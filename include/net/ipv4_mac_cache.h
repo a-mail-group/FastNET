@@ -13,32 +13,15 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
-#include <net/in_tlp.h>
-#include <stdlib.h>
-#include <net/ipv4_mac_cache.h>
+#pragma once
 
-#if 1
-#define ASSERT(i) if(!(i)) abort()
-#else
-#endif
+#include <odp_api.h>
+#include <net/types.h>
+#include <net/nif.h>
+#include <net/header/ip.h>
 
-static void init(){
-	int i;
-	int idefault = -1;
-	
-	ASSERT(fn_in_protocols_n>0);
-	
-	for(i=0;i<fn_in_protocols_n;++i){
-		if(fn_in_protocols[i].in_pt!=INPT_DEFAULT) continue;
-		idefault = i;
-		break;
-	}
-	ASSERT(i >= 0);
-	
-}
+void fastnet_initialize_ipmac_cache();
 
+netpp_retcode_t fastnet_ipv4_mac_lookup(nif_t* nif,ipv4_addr_t ipaddr,uint64_t* hwaddr,int *sendarp,odp_packet_t pkt);
+odp_packet_t    fastnet_ipv4_mac_put(nif_t* nif,ipv4_addr_t ipaddr,uint64_t hwaddr);
 
-void fastnet_tlp_init(){
-	fastnet_initialize_ipmac_cache();
-	init();
-}

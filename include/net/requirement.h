@@ -1,5 +1,5 @@
 /*
- *   Copyright 2017 Simon Schmidt
+ *   Copyright 2016-2017 Simon Schmidt
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -13,32 +13,13 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
-#include <net/in_tlp.h>
-#include <stdlib.h>
-#include <net/ipv4_mac_cache.h>
+#pragma once
 
-#if 1
-#define ASSERT(i) if(!(i)) abort()
-#else
-#endif
+typedef union{
+	struct{
+		odp_packet_t next;
+	};
+} fastnet_pkt_uarea_t;
 
-static void init(){
-	int i;
-	int idefault = -1;
-	
-	ASSERT(fn_in_protocols_n>0);
-	
-	for(i=0;i<fn_in_protocols_n;++i){
-		if(fn_in_protocols[i].in_pt!=INPT_DEFAULT) continue;
-		idefault = i;
-		break;
-	}
-	ASSERT(i >= 0);
-	
-}
+#define FASTNET_PACKET_UAREA(pkt) ((fastnet_pkt_uarea_t*)odp_packet_user_area(pkt))
 
-
-void fastnet_tlp_init(){
-	fastnet_initialize_ipmac_cache();
-	init();
-}

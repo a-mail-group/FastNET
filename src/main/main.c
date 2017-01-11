@@ -16,10 +16,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <odp_api.h>
+#include <net/in_tlp.h>
 #include <net/niftable.h>
 #include <net/ipv4.h>
 #include <net/packet_input.h>
 #include <net/header/ip.h>
+#include <net/requirement.h>
 
 #define EXAMPLE_ABORT(...) do{ printf(__VA_ARGS__); abort(); }while(0)
 
@@ -54,6 +56,35 @@ netpp_retcode_t handle_packet(odp_packet_t pkt){
 #define BUFFER_SIZE 1856
 #define POOL_SIZE   (512*2048)
 
+static
+void test_arpcache(){
+	int i;
+	int sendarp;
+	uint64_t hwaddr;
+	ipv4_addr_t addr;
+	for(i=1;i<16;++i){
+		addr = ipv4_addr_init(192,168,99,i);
+		hwaddr = addr;
+		printf("I  %08x -> %08x\n",(int)addr,(int)hwaddr);
+		fastnet_ipv4_mac_put(NULL,addr,hwaddr);
+	}
+	
+	for(i=1;i<32;++i){
+		addr = ipv4_addr_init(192,168,99,i);
+		switch(fastnet_ipv4_mac_lookup(NULL,addr,&hwaddr,&sendarp,ODP_PACKET_INVALID)) {
+		case NETPP_CONTINUE:
+			printf(" O %08x -> %08x\n",(int)addr,(int)hwaddr);
+			break;
+		case NETPP_DROP:
+			printf(" O %08x -> FAIL\n",(int)addr);
+			break;
+		default:
+			printf(" O %08x -> NOT_FOUND\n",(int)addr);
+			break;
+		}
+	}
+}
+
 int main(){
 	int i,p;
 
@@ -67,17 +98,19 @@ int main(){
 	nif_t *nif;
 	struct ipv4_nif_struct* ipv4;
 	ipv4 = calloc(sizeof(*ipv4),1);
-	fastnet_ip_set(ipv4,ipv4_addr_init(10,0,3,9),ipv4_addr_init(0xff,0xff,0,0));
+	fastnet_ip_set(ipv4,ipv4_addr_init(192,168,99,109),ipv4_addr_init(0xff,0xff,0,0));
+	// Ping me: 192.168.99.109
 	
 	/* ---------------------Packet IO Code.----------------------- */
 	odp_init_global(&instance, NULL, NULL);
 	odp_init_local(instance, ODP_THREAD_CONTROL);
 	
 	odp_pool_param_init(&params);
-	params.pkt.seg_len = BUFFER_SIZE;
-	params.pkt.len     = BUFFER_SIZE;
-	params.pkt.num     = POOL_SIZE/BUFFER_SIZE;
-	params.type        = ODP_POOL_PACKET;
+	params.pkt.seg_len    = BUFFER_SIZE;
+	params.pkt.len        = BUFFER_SIZE;
+	params.pkt.num        = POOL_SIZE/BUFFER_SIZE;
+	params.pkt.uarea_size = sizeof(odp_packet_t);
+	params.type           = ODP_POOL_PACKET;
 	
 	pool = odp_pool_create("packet_pool", &params);
 	if (pool == ODP_POOL_INVALID) EXAMPLE_ABORT("Error: packet pool create failed.\n");
@@ -88,6 +121,7 @@ int main(){
 	
 	//pktio = create_pktio("vmbridge0",pool);
 	//pktio = create_pktio("eth0",pool);
+	fastnet_tlp_init();
 	if(!fastnet_niftable_prepare(table,instance))
 		EXAMPLE_ABORT("Error: nif-table init failed.\n");
 	nif = fastnet_openpktio(table,"tap:tap1",pool);

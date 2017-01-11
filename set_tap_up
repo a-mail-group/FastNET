@@ -1,0 +1,7 @@
+#!/bin/sh
+
+ifconfig tap1 192.168.99.14 netmask 255.255.0.0 up
+
+#BTW: The program's IP is 192.168.99.109
+
+
