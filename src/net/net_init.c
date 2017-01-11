@@ -15,6 +15,12 @@
  */
 
 #include <net/niftable.h>
+#include <string.h>
+
+#if 1
+#include <stdlib.h>
+#define MALLOC(x) malloc(x)
+#endif
 
 #if 0
 #include <stdio.h>
@@ -33,6 +39,14 @@ int fastnet_niftable_prepare(nif_table_t* table,odp_instance_t instance) {
 	return 1;
 }
 
+static
+const char* str_join(const char* prefix,const char* postfix){
+	size_t c = strlen(prefix)+strlen(postfix);
+	char* data = MALLOC(c+2);
+	strcpy(data,prefix);
+	strcat(data,postfix);
+	return data;
+}
 
 nif_t* fastnet_openpktio(nif_table_t* table,const char* dev,odp_pool_t pool) {
 	odp_pktio_t              pktio;
@@ -48,7 +62,7 @@ nif_t* fastnet_openpktio(nif_table_t* table,const char* dev,odp_pool_t pool) {
 	odp_queue_param_init(&loop_p);
 	loop_p.type     = ODP_QUEUE_TYPE_SCHED;
 	loop_p.enq_mode = ODP_QUEUE_OP_MT;
-	loop = odp_queue_create("loopback_queue",&loop_p);
+	loop = odp_queue_create(str_join(dev,"(loopback)"),&loop_p);
 	DEBUG( loop==ODP_QUEUE_INVALID );
 	if(loop==ODP_QUEUE_INVALID) return 0;
 	odp_queue_context_set(loop,table,sizeof(*table));

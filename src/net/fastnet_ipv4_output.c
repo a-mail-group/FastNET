@@ -20,6 +20,7 @@
 #include <net/header/ethhdr.h>
 #include <net/packet_output.h>
 #include <net/checksum.h>
+#include <net/ipv4_mac_cache.h>
 
 struct ip_local_info{
 	ip_next_hop_t*    nh;
@@ -125,9 +126,11 @@ static void ipv4_setmacaddrs(fnet_eth_header_t* __restrict__ ethp, uint64_t src,
 
 static
 netpp_retcode_t ipv4_add_eth(odp_packet_t pkt,struct ip_local_info* __restrict__  odata) {
+	netpp_retcode_t res;
 	uint32_t ethsize,ipoff;
 	void* ethp;
 	int hasifip;
+	int sendarp;
 	uint64_t src,dst;
 	ipv4_addr_t dst_ip = odata->ip->desination_addr;
 	ipv4_addr_t ifip;
@@ -150,7 +153,9 @@ netpp_retcode_t ipv4_add_eth(odp_packet_t pkt,struct ip_local_info* __restrict__
 		odata->is_loopback = 1;
 		dst = odata->outnif->hwaddr;
 	}else{
-		dst = ~0; // TODO: ARP.
+		res = fastnet_ipv4_mac_lookup(odata->outnif,dst_ip,&dst,&sendarp,pkt);
+		// TODO: if(sendarp) send arp.
+		if(res!=NETPP_CONTINUE) return res;
 	}
 	
 	if(ipoff >= ethsize){
