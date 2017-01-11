@@ -17,6 +17,8 @@ CFLAGS += -Iinclude
 #build: $(stack)
 #	rm $(stack)
 
+net += src/net/fastnet_arp.o
+
 net += src/net/fastnet_pkt_input.o
 net += src/net/fastnet_tcp_input.o
 net += src/net/fastnet_udp_input.o

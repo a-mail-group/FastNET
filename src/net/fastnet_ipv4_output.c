@@ -85,7 +85,7 @@ static uint64_t ipv4_multicast(ipv4_addr_t addr){
 	union {
 		uint8_t  addr8[8];
 		uint64_t addr64 ODP_PACKED;
-	} mac = { .addr64 = 0 };
+	} mac;
 	
 	mac.addr8[0] = 0x01;
 	mac.addr8[1] = 0x00;
@@ -93,6 +93,8 @@ static uint64_t ipv4_multicast(ipv4_addr_t addr){
 	mac.addr8[3] = ip.addr8[1] & 0x7f;
 	mac.addr8[4] = ip.addr8[2];
 	mac.addr8[5] = ip.addr8[3];
+	mac.addr8[6] = 0;
+	mac.addr8[7] = 0;
 	return mac.addr64;
 }
 

@@ -43,5 +43,5 @@ typedef struct ODP_PACKED
 #define FNET_ARP_PROT_SIZE      (4U)         /* for IP.*/
 
 #define FNET_ARP_OP_REQUEST     (1U)         /* ARP request.*/
-#define FNET_ARP_OP_REPLY (2U) /* ARP reply.*/
+#define FNET_ARP_OP_REPLY       (2U)         /* ARP reply.*/
 
