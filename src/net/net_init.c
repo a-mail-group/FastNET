@@ -1,5 +1,5 @@
 /*
- *   Copyright 2016 Simon Schmidt
+ *   Copyright 2017 Simon Schmidt
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -16,11 +16,9 @@
 
 #include <net/niftable.h>
 #include <string.h>
-
-#if 1
-#include <stdlib.h>
-#define MALLOC(x) malloc(x)
-#endif
+#include <net/std_lib.h>
+#include <net/std_defs.h>
+#include <net/mac_addr_ldst.h>
 
 #if 0
 #include <stdio.h>
@@ -39,13 +37,9 @@ int fastnet_niftable_prepare(nif_table_t* table,odp_instance_t instance) {
 	return 1;
 }
 
-static
+static inline
 const char* str_join(const char* prefix,const char* postfix){
-	size_t c = strlen(prefix)+strlen(postfix);
-	char* data = MALLOC(c+2);
-	strcpy(data,prefix);
-	strcat(data,postfix);
-	return data;
+	return fastnet_dup_concat3(prefix,postfix,"");
 }
 
 nif_t* fastnet_openpktio(nif_table_t* table,const char* dev,odp_pool_t pool) {
@@ -56,12 +50,14 @@ nif_t* fastnet_openpktio(nif_table_t* table,const char* dev,odp_pool_t pool) {
 	nif_t*                   nif;
 	odp_queue_t              loop;
 	odp_queue_param_t        loop_p;
+	uint8_t mac_addr[6];
 	int ret;
 	
 	if(table->max>=NET_NIFTAB_MAX_NIFS) return 0;
 	odp_queue_param_init(&loop_p);
 	loop_p.type     = ODP_QUEUE_TYPE_SCHED;
 	loop_p.enq_mode = ODP_QUEUE_OP_MT;
+	
 	loop = odp_queue_create(str_join(dev,"(loopback)"),&loop_p);
 	DEBUG( loop==ODP_QUEUE_INVALID );
 	if(loop==ODP_QUEUE_INVALID) return 0;
@@ -80,6 +76,24 @@ nif_t* fastnet_openpktio(nif_table_t* table,const char* dev,odp_pool_t pool) {
 	pktio = odp_pktio_open(dev, pool, &pktio_p);
 	DEBUG( pktio == ODP_PKTIO_INVALID );
 	if (pktio == ODP_PKTIO_INVALID) goto error2;
+	
+	if(odp_pktio_mac_addr(pktio,mac_addr,sizeof mac_addr)<0){
+		DBGPF("Device '%s' has no MAC address.\n",dev);
+		goto error1;
+	}
+	DBGPF("Device '%s' MAC address is %02x:%02x:%02x:%02x:%02x:%02x\n",dev,
+		(int)mac_addr[0],
+		(int)mac_addr[1],
+		(int)mac_addr[2],
+		(int)mac_addr[3],
+		(int)mac_addr[4],
+		(int)mac_addr[5]
+	);
+	
+	/*
+	 * Store the mac address in the nif_t* structure.
+	 */
+	nif->hwaddr = fastnet_mac_to_int(mac_addr);
 	
 	/*
 	 * Configure input-queues.

@@ -1,5 +1,5 @@
 /*
- *   Copyright 2017 Simon Schmidt
+ *   Copyright 2016 Simon Schmidt
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -13,14 +13,15 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
-#pragma once
-#include <net/types.h>
+#include <stdlib.h>
+#include <net/std_lib.h>
+#include <net/std_defs.h>
 
-netpp_retcode_t fastnet_ip_input(odp_packet_t pkt);
-netpp_retcode_t fastnet_tcp_input(odp_packet_t pkt);
-netpp_retcode_t fastnet_udp_input(odp_packet_t pkt);
+void* fastnet_malloc(fastnet_size_t size){
+	return malloc(size);
+}
 
-
-netpp_retcode_t fastnet_classified_input(odp_packet_t pkt);
-netpp_retcode_t fastnet_raw_input(odp_packet_t pkt);
+void fastnet_abort(){
+	abort();
+}
 

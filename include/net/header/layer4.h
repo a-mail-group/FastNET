@@ -29,4 +29,5 @@
 #define IP_PROTOCOL_ICMP6   0x3A
 #define IP_PROTOCOL_INVALID 0xFF /* Reserved invalid by IANA */
 
+#define IP_NO_PROTOCOL 0x100
 

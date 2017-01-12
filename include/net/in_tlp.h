@@ -19,18 +19,21 @@
 
 typedef netpp_retcode_t (*netpp_cb6_t)(odp_packet_t pkt,int* nxt, int idx);
 
+typedef void (*fn_tlpinit_t)();
+
 enum {
-	INPT_PROTOCOL=0,
-	INPT_DEFAULT,
-	INPT_DEFAULT6,
-	INPT_IPV6_ONLY,
+	INPT_PROTOCOL=0, /* A transport protocol for IPv4 and IPv6. */
+	INPT_DEFAULT,    /* Default handler, if no other Protocol handler is defined. */
+	INPT_DEFAULT6,   /* Default handler, if no other Protocol handler is defined (IPv6). */
+	INPT_IPV6_ONLY,  /* A transport protocol for IPv6 only. */
 };
 
 struct fn_transport_layer_protocol {
-	uint8_t     in_protocol;
-	uint8_t     in_pt;
-	netpp_cb_t  in_hook;
-	netpp_cb6_t in6_hook;
+	uint8_t      in_protocol;
+	uint8_t      in_pt;
+	netpp_cb_t   in_hook;
+	netpp_cb6_t  in6_hook;
+	fn_tlpinit_t tlp_init;
 };
 
 extern struct fn_transport_layer_protocol fn_in_protocols[];

@@ -17,8 +17,6 @@ CFLAGS += -Iinclude
 #build: $(stack)
 #	rm $(stack)
 
-net += src/net/fastnet_arp.o
-
 net += src/net/fastnet_pkt_input.o
 net += src/net/fastnet_tcp_input.o
 net += src/net/fastnet_udp_input.o
@@ -28,7 +26,9 @@ net += src/net/fastnet_tcp_output.o
 net += src/net/fastnet_udp_output.o
 net += src/net/fastnet_pkt_output.o
 
+net += src/net/fastnet_arp.o
 net += src/net/fastnet_checksum.o
+
 net += src/net/basis_input.o
 net += src/net/fnv1a.o
 net += src/net/in_tlp.o
@@ -39,7 +39,10 @@ net += src/net/net_init.o
 
 net += src/net/tlp_init.o
 
+net += src/net/std_lib.o
+
 net += src/net_linux/start_threads.o
+net += src/net_linux/malloc.o
 
 runnable: $(net) src/main/main.o runscript
 	$(GCC) $(CFLAGS) $(net) src/main/main.o -lodp-linux -lodphelper-linux -o runnable

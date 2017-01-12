@@ -1,5 +1,5 @@
 /*
- *   Copyright 2016 Simon Schmidt
+ *   Copyright 2017 Simon Schmidt
  *   Copyright 2011-2016 by Andrey Butok. FNET Community.
  *   Copyright 2008-2010 by Andrey Butok. Freescale Semiconductor, Inc.
  *   Copyright 2003 by Andrey Butok. Motorola SPS.
@@ -23,36 +23,15 @@
 #include <net/ipv4_mac_cache.h>
 #include <net/packet_output.h>
 #include <net/header/ethhdr.h>
+#include <net/mac_addr_ldst.h>
 
-static uint64_t mac_to_int(uint8_t* __restrict__ macp){
-	union {
-		uint8_t  addr8[8];
-		uint64_t addr64 ODP_PACKED;
-	} mac = { .addr64 = 0 };
-	mac.addr8[0] = macp[0];
-	mac.addr8[1] = macp[1];
-	mac.addr8[2] = macp[2];
-	mac.addr8[3] = macp[3];
-	mac.addr8[4] = macp[4];
-	mac.addr8[5] = macp[5];
-	mac.addr8[6] = 0;
-	mac.addr8[7] = 0;
-	return mac.addr64;
-}
+#if 0
+#define mac_to_int fastnet_mac_to_int
+#define int_to_mac fastnet_int_to_mac
+#endif
 
-static uint64_t int_to_mac(uint8_t* __restrict__ macp,uint64_t value){
-	union {
-		uint8_t  addr8[8];
-		uint64_t addr64 ODP_PACKED;
-	} mac = { .addr64 = value };
-	macp[0] = mac.addr8[0];
-	macp[1] = mac.addr8[1];
-	macp[2] = mac.addr8[2];
-	macp[3] = mac.addr8[3];
-	macp[4] = mac.addr8[4];
-	macp[5] = mac.addr8[5];
-	return mac.addr64;
-}
+#define M2I fastnet_mac_to_int
+#define I2M fastnet_int_to_mac
 
 static void arp_setmacaddrs(fnet_eth_header_t* __restrict__ ethp, uint64_t src, uint64_t dst){
 	union {
@@ -80,6 +59,7 @@ static void arp_setmacaddrs(fnet_eth_header_t* __restrict__ ethp, uint64_t src, 
 }
 
 netpp_retcode_t fastnet_arp_input(odp_packet_t pkt){
+	odp_packet_t        chain;
 	nif_t*              nif;
 	fnet_arp_header_t*  arp_hdr;
 	ipv4_addr_t         sender_prot_addr;
@@ -97,8 +77,8 @@ netpp_retcode_t fastnet_arp_input(odp_packet_t pkt){
 	
 	sender_prot_addr = arp_hdr->sender_prot_addr;
 	target_prot_addr = arp_hdr->target_prot_addr;
-	sender_hard_addr = mac_to_int(arp_hdr->sender_hard_addr);
-	//target_hard_addr = mac_to_int(arp_hdr->target_hard_addr);
+	sender_hard_addr = M2I(arp_hdr->sender_hard_addr);
+	//target_hard_addr = M2I(arp_hdr->target_hard_addr);
 	
 	if (!IP4ADDR_EQ(sender_prot_addr,nif->ipv4->address)){
 		/*
@@ -114,14 +94,12 @@ netpp_retcode_t fastnet_arp_input(odp_packet_t pkt){
 		 *
 		 * XXX every put will create an entry.
 		 */
-		fastnet_ipv4_mac_put(nif,sender_prot_addr,sender_hard_addr);
-		//chain = netarp_tab_update(netif,sender_prot_addr,sender_hard_addr,create);
+		chain = fastnet_ipv4_mac_put(nif,sender_prot_addr,sender_hard_addr);
 		
 		/*
 		 * Send all network packets out to the 'sender_hard_addr'.
 		 */
-		//netif->netif_class->ifapi_send_l2_all(netif,pkt,&sender_hard_addr,NETPROT_L3_ARP);
-		// TODO:
+		fastnet_ip_arp_transmit(chain,nif,nif->hwaddr,sender_hard_addr);
 	}else{
 		// TODO: duplicate address detection.
 	}
@@ -131,8 +109,8 @@ netpp_retcode_t fastnet_arp_input(odp_packet_t pkt){
 		
 		arp_hdr->op = odp_cpu_to_be_16(FNET_ARP_OP_REPLY); /* Opcode */
 		
-		int_to_mac(arp_hdr->target_hard_addr,sender_hard_addr);
-		int_to_mac(arp_hdr->sender_hard_addr,nif->hwaddr);
+		I2M(arp_hdr->target_hard_addr,sender_hard_addr);
+		I2M(arp_hdr->sender_hard_addr,nif->hwaddr);
 		
 		arp_hdr->target_prot_addr = arp_hdr->sender_prot_addr;
 		arp_hdr->sender_prot_addr = nif->ipv4->address;

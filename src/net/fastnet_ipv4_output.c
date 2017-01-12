@@ -21,6 +21,8 @@
 #include <net/packet_output.h>
 #include <net/checksum.h>
 #include <net/ipv4_mac_cache.h>
+#include <net/requirement.h>
+#include <net/std_defs.h>
 
 struct ip_local_info{
 	ip_next_hop_t*    nh;
@@ -165,7 +167,35 @@ netpp_retcode_t ipv4_add_eth(odp_packet_t pkt,struct ip_local_info* __restrict__
 		ethp = odp_packet_l2_ptr(pkt,NULL);
 	}else{
 		ethp = odp_packet_push_head(pkt,ethsize-ipoff);
+		odp_packet_l2_offset_set(pkt,0);
+		odp_packet_l3_offset_set(pkt,ethsize);
 	}
+	
+	if(odp_unlikely(ethp == NULL)) return NETPP_DROP;
+	
+	ipv4_setmacaddrs(ethp,src,dst);
+	
+	return NETPP_CONTINUE;
+}
+
+static
+netpp_retcode_t arpres_add_eth(odp_packet_t pkt,uint64_t src,uint64_t dst){
+	uint32_t ethsize,ipoff;
+	void* ethp;
+	
+	ethsize = sizeof(fnet_eth_header_t);
+	ipoff = odp_packet_l3_offset(pkt);
+	
+	if(ipoff >= ethsize){
+		odp_packet_l2_offset_set(pkt,ipoff-ethsize);
+		ethp = odp_packet_l2_ptr(pkt,NULL);
+	}else{
+		ethp = odp_packet_push_head(pkt,ethsize-ipoff);
+		odp_packet_l2_offset_set(pkt,0);
+		odp_packet_l3_offset_set(pkt,ethsize);
+	}
+	
+	if(odp_unlikely(ethp == NULL)) return NETPP_DROP;
 	
 	ipv4_setmacaddrs(ethp,src,dst);
 	
@@ -207,4 +237,33 @@ netpp_retcode_t fastnet_ip_output(odp_packet_t pkt,ip_next_hop_t* nh){
 	}
 }
 
+void fastnet_ip_arp_transmit(odp_packet_t pkt,nif_t *nif,uint64_t src,uint64_t dst){
+	uint32_t pretrail;
+	netpp_retcode_t ret;
+	odp_packet_t pkt_next;
+	
+	while(pkt!=ODP_PACKET_INVALID){
+		
+		pkt_next = FASTNET_PACKET_UAREA(pkt)->next;
+		
+		ret = arpres_add_eth(pkt,src,dst);
+		if(odp_unlikely(ret != NETPP_CONTINUE)){
+			if(ret==NETPP_DROP) odp_packet_free(pkt);
+			pkt = pkt_next;
+			continue;
+		}
+		/*
+		 * Do we have any data in front of the Layer 2 header? Get Rid of it!
+		 */
+		pretrail = odp_packet_l2_offset(pkt);
+		if(odp_unlikely(pretrail>0))
+			odp_packet_pull_head(pkt,pretrail);
+		
+		ret = fastnet_pkt_output(pkt,nif);
+		if(odp_unlikely(ret != NETPP_CONSUMED)){
+			odp_packet_free(pkt);
+		}
+		pkt = pkt_next;
+	}
+}
 
