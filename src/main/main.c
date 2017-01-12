@@ -23,11 +23,19 @@
 #include <net/header/ip.h>
 #include <net/requirement.h>
 
+#include <net/header/iphdr.h>
+#include <net/header/ip6hdr.h>
+
 #define EXAMPLE_ABORT(...) do{ printf(__VA_ARGS__); abort(); }while(0)
 
 #define PRINT_INT(expr) "\t" #expr " = %d\n"
 static
 netpp_retcode_t handle_packet(odp_packet_t pkt){
+	fnet_ip_header_t* ip;
+	fnet_ip6_header_t* ip6;
+	uint32_t len,l3p,plen;
+	
+	#if 0
 	printf("Packet{\n"
 	"\thas L2=%d,L3=%d,L4=%d\n"
 	"\tlayer3=%s%s%s\n"
@@ -50,6 +58,32 @@ netpp_retcode_t handle_packet(odp_packet_t pkt){
 	,odp_packet_l3_offset(pkt)
 	,odp_packet_l4_offset(pkt)
 	);
+	#endif
+	
+	/*
+	 * len seems to equal plen, when I tested it.
+	 *
+	 * It seems to me, the packet Ethernet frame comes without the trailing CRC32 checksum.
+	 * Hmmmmmm.... Maybe, it is unecessary to append one?
+	 */
+	
+	if(odp_packet_has_ipv4(pkt)){
+		ip = odp_packet_l3_ptr(pkt,NULL);
+		len = odp_be_to_cpu_16(ip->total_length);
+		l3p = odp_packet_l3_offset(pkt);
+		plen = odp_packet_len(pkt)-l3p;
+		
+		printf("IP4:len = %d; plen = %d\n",len,plen);
+	}else if(odp_packet_has_ipv6(pkt)){
+		ip6 = odp_packet_l3_ptr(pkt,NULL);
+		len = odp_be_to_cpu_16(ip6->length) + sizeof(fnet_ip6_header_t);
+		l3p = odp_packet_l3_offset(pkt);
+		plen = odp_packet_len(pkt)-l3p;
+		
+		printf("IP6:len = %d; plen = %d\n",len,plen);
+	};
+	
+	
 	return NETPP_DROP;
 }
 
@@ -121,15 +155,20 @@ int main(){
 	
 	//pktio = create_pktio("vmbridge0",pool);
 	//pktio = create_pktio("eth0",pool);
+	/*
+	"vmbridge0"
+	"eth0"
+	"tap:tap1"
+	*/
 	fastnet_tlp_init();
 	if(!fastnet_niftable_prepare(table,instance))
 		EXAMPLE_ABORT("Error: nif-table init failed.\n");
-	nif = fastnet_openpktio(table,"tap:tap1",pool);
+	nif = fastnet_openpktio(table,"eth0",pool);
 	if(!nif)
 		EXAMPLE_ABORT("Error: pktio create failed.\n");
 	nif->ipv4 = ipv4;
-	//table->function = handle_packet;
-	table->function = fastnet_classified_input;
+	table->function = handle_packet;
+	//table->function = fastnet_classified_input;
 	
 	/* ---------------------Thread Code.----------------------- */
 	
