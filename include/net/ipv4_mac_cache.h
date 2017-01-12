@@ -23,5 +23,5 @@
 void fastnet_initialize_ipmac_cache();
 
 netpp_retcode_t fastnet_ipv4_mac_lookup(nif_t* nif,ipv4_addr_t ipaddr,uint64_t* hwaddr,int *sendarp,odp_packet_t pkt);
-odp_packet_t    fastnet_ipv4_mac_put(nif_t* nif,ipv4_addr_t ipaddr,uint64_t hwaddr);
+odp_packet_t    fastnet_ipv4_mac_put(nif_t* nif,ipv4_addr_t ipaddr,uint64_t hwaddr,int create);
 

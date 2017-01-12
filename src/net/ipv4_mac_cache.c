@@ -168,7 +168,7 @@ static void free_chain(odp_buffer_t buf){
  *  2 -> key updated.
  */
 static int
-ipmac_lkup_or_insert(ipv4_mac_entry_t* key,odp_packet_t pkt){
+ipmac_lkup_or_insert(ipv4_mac_entry_t* key,odp_packet_t pkt,int create){
 	int ret;
 	uint32_t lock  = HASHTAB_LOCKS_MOD(key->hash);
 	uint32_t index = HASHTAB_SZ_MOD(key->hash);
@@ -216,7 +216,7 @@ ipmac_lkup_or_insert(ipv4_mac_entry_t* key,odp_packet_t pkt){
 		bufaddr = &entry->next;
 	}
 	
-	if(ret<0){
+	if(odp_likely(create) && ret<0){
 		if(alloc==ODP_BUFFER_INVALID) alloc = odp_buffer_alloc(entries);
 		if(odp_unlikely(alloc==ODP_BUFFER_INVALID)) goto terminate;
 		entry = odp_buffer_addr(alloc);
@@ -245,7 +245,7 @@ netpp_retcode_t fastnet_ipv4_mac_lookup(nif_t* nif,ipv4_addr_t ipaddr,uint64_t* 
 	ip_entry(nif,ipaddr,&key);
 	cur = key.tstamp;
 	
-	ret = ipmac_lkup_or_insert(&key,pkt);
+	ret = ipmac_lkup_or_insert(&key,pkt,1);
 	*sendarp = 1;
 	
 	switch(ret){
@@ -261,13 +261,13 @@ netpp_retcode_t fastnet_ipv4_mac_lookup(nif_t* nif,ipv4_addr_t ipaddr,uint64_t* 
 	return NETPP_DROP;
 }
 
-odp_packet_t    fastnet_ipv4_mac_put(nif_t* nif,ipv4_addr_t ipaddr,uint64_t hwaddr){
+odp_packet_t    fastnet_ipv4_mac_put(nif_t* nif,ipv4_addr_t ipaddr,uint64_t hwaddr,int create){
 	ipv4_mac_entry_t key;
 	ip_entry(nif,ipaddr,&key);
 	key.flags = 0;
 	key.hwaddr = hwaddr;
 	
-	if( ipmac_lkup_or_insert(&key,ODP_PACKET_INVALID) == 2 ){
+	if( ipmac_lkup_or_insert(&key,ODP_PACKET_INVALID,create) == 2 ){
 		if(key.flags & FLAGS_HAS_CHAIN) return key.chain;
 	}
 	

@@ -66,7 +66,7 @@ void test_arpcache(){
 		addr = ipv4_addr_init(192,168,99,i);
 		hwaddr = addr;
 		printf("I  %08x -> %08x\n",(int)addr,(int)hwaddr);
-		fastnet_ipv4_mac_put(NULL,addr,hwaddr);
+		fastnet_ipv4_mac_put(NULL,addr,hwaddr,1);
 	}
 	
 	for(i=1;i<32;++i){

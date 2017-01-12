@@ -67,6 +67,7 @@ netpp_retcode_t fastnet_arp_input(odp_packet_t pkt){
 	uint64_t            sender_hard_addr;
 	//uint64_t            target_hard_addr;
 	uint32_t            pretrail;
+	int                 create;
 	
 	nif = odp_packet_user_ptr(pkt);
 	
@@ -84,17 +85,13 @@ netpp_retcode_t fastnet_arp_input(odp_packet_t pkt){
 		/*
 		 * If the target protocol address is ours, we're going to create a new ARP
 		 * cache entry. Otherwise we update it, if it exists.
-		 *
-		 * XXX this is currently unused.
 		 */
-		//create = IP4ADDR_EQ(target_prot_addr,nif->ipv4->address) ? 1 : 0; /* It's for me. */
+		create = IP4ADDR_EQ(target_prot_addr,nif->ipv4->address) ? 1 : 0; /* It's for me. */
 		
 		/*
 		 * Create or update ARP entry.
-		 *
-		 * XXX every put will create an entry.
 		 */
-		chain = fastnet_ipv4_mac_put(nif,sender_prot_addr,sender_hard_addr);
+		chain = fastnet_ipv4_mac_put(nif,sender_prot_addr,sender_hard_addr,create);
 		
 		/*
 		 * Send all network packets out to the 'sender_hard_addr'.
