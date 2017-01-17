@@ -158,14 +158,14 @@ netpp_retcode_t ipv4_add_eth(odp_packet_t pkt,struct ip_local_info* __restrict__
 		dst = odata->outnif->hwaddr;
 	}else{
 		res = fastnet_ipv4_mac_lookup(odata->outnif,dst_ip,&dst,&sendarp,pkt);
-		if(res!=NETPP_CONTINUE){
+		if(sendarp){
 			/*
 			 * Send an ARP packet out the network interface.
 			 * XXX test return value.
 			 */
 			fastnet_arp_output(ifip,dst_ip,odata->outnif);
-			return res;
 		}
+		if(res!=NETPP_CONTINUE) return res;
 	}
 	
 	if(ipoff >= ethsize){
