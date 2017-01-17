@@ -66,7 +66,7 @@ netpp_retcode_t handle_packet(odp_packet_t pkt){
 	 * It seems to me, the packet Ethernet frame comes without the trailing CRC32 checksum.
 	 * Hmmmmmm.... Maybe, it is unecessary to append one?
 	 */
-	
+	printf("NIF = %p\n",odp_packet_user_ptr(pkt));
 	if(odp_packet_has_ipv4(pkt)){
 		ip = odp_packet_l3_ptr(pkt,NULL);
 		len = odp_be_to_cpu_16(ip->total_length);
@@ -123,7 +123,6 @@ int main(){
 	int i,p;
 
 	/* ---------------------Packet IO Vars.----------------------- */
-	odp_pool_t pool;
 	odp_pool_param_t params;
 	odp_instance_t instance;
 	//odph_odpthread_params_t thr_params;
@@ -139,18 +138,6 @@ int main(){
 	odp_init_global(&instance, NULL, NULL);
 	odp_init_local(instance, ODP_THREAD_CONTROL);
 	
-	odp_pool_param_init(&params);
-	params.pkt.seg_len    = BUFFER_SIZE;
-	params.pkt.len        = BUFFER_SIZE;
-	params.pkt.num        = POOL_SIZE/BUFFER_SIZE;
-	params.pkt.uarea_size = sizeof(odp_packet_t);
-	params.type           = ODP_POOL_PACKET;
-	
-	pool = odp_pool_create("packet_pool", &params);
-	if (pool == ODP_POOL_INVALID) EXAMPLE_ABORT("Error: packet pool create failed.\n");
-	
-	odp_pool_print(pool);
-	
 	table = calloc(sizeof(*table),1);
 	
 	//pktio = create_pktio("vmbridge0",pool);
@@ -160,13 +147,16 @@ int main(){
 	"eth0"
 	"tap:tap1"
 	*/
+	if(!fastnet_pools_init(0,0,0,0))
+		EXAMPLE_ABORT("Error: allocating pools.\n");
 	fastnet_tlp_init();
 	if(!fastnet_niftable_prepare(table,instance))
 		EXAMPLE_ABORT("Error: nif-table init failed.\n");
-	nif = fastnet_openpktio(table,"eth0",pool);
+	nif = fastnet_openpktio(table,"tap:tap1");
 	if(!nif)
 		EXAMPLE_ABORT("Error: pktio create failed.\n");
 	nif->ipv4 = ipv4;
+	
 	table->function = handle_packet;
 	//table->function = fastnet_classified_input;
 	

@@ -19,6 +19,7 @@
 #include <net/std_lib.h>
 #include <net/std_defs.h>
 #include <net/mac_addr_ldst.h>
+#include <net/requirement.h>
 
 #if 0
 #include <stdio.h>
@@ -28,6 +29,45 @@
 #define DEBUG(x) (void)0
 #define DBGPF(...) (void)0
 #endif
+
+#define BUFFER_SIZE 1856
+#define POOL_SIZE   (512*2048)
+
+int fastnet_pools_init(uint32_t pktsize,uint32_t pktnum,uint32_t poutsize,uint32_t poutnum){
+	odp_pool_param_t params;
+	odp_pool_t pool;
+	
+	/* ------------  Pool used by the NIFs for input  -------------- */
+	if(pktsize<BUFFER_SIZE) pktsize = BUFFER_SIZE;
+	if(pktnum<512) pktnum = 512;
+	
+	odp_pool_param_init(&params);
+	params.pkt.seg_len    = pktsize;
+	params.pkt.len        = pktsize;
+	params.pkt.num        = pktnum;
+	params.pkt.uarea_size = sizeof(fastnet_pkt_uarea_t);
+	params.type           = ODP_POOL_PACKET;
+	
+	pool = odp_pool_create("fn_pktin",&params);
+	if(pool == ODP_POOL_INVALID) return 0;
+	
+	/* ------------- Pool used by the net-stack for output  --------------*/
+	
+	if(!poutsize) poutsize = pktsize;
+	if(!poutnum)  poutnum  = pktnum;
+	
+	odp_pool_param_init(&params);
+	params.pkt.seg_len    = poutsize;
+	params.pkt.len        = poutsize;
+	params.pkt.num        = poutnum;
+	params.pkt.uarea_size = sizeof(fastnet_pkt_uarea_t);
+	params.type           = ODP_POOL_PACKET;
+	
+	pool = odp_pool_create("fn_pktout",&params);
+	if(pool == ODP_POOL_INVALID) return 0;
+	
+	return 1;
+}
 
 int fastnet_niftable_prepare(nif_table_t* table,odp_instance_t instance) {
 	table->workers = odp_cpumask_default_worker(&(table->cpumask), NET_MAXTHREAD);
@@ -42,7 +82,7 @@ const char* str_join(const char* prefix,const char* postfix){
 	return fastnet_dup_concat3(prefix,postfix,"");
 }
 
-nif_t* fastnet_openpktio(nif_table_t* table,const char* dev,odp_pool_t pool) {
+nif_t* fastnet_openpktio(nif_table_t* table,const char* dev) {
 	odp_pktio_t              pktio;
 	odp_pktio_param_t        pktio_p;
 	odp_pktin_queue_param_t  pktin_qp;
@@ -50,22 +90,24 @@ nif_t* fastnet_openpktio(nif_table_t* table,const char* dev,odp_pool_t pool) {
 	nif_t*                   nif;
 	odp_queue_t              loop;
 	odp_queue_param_t        loop_p;
+	odp_pool_t               pool;
 	uint8_t mac_addr[6];
 	int ret;
 	
-	if(table->max>=NET_NIFTAB_MAX_NIFS) return 0;
-	odp_queue_param_init(&loop_p);
-	loop_p.type     = ODP_QUEUE_TYPE_SCHED;
-	loop_p.enq_mode = ODP_QUEUE_OP_MT;
+	pool = odp_pool_lookup("fn_pktin");
+	if(pool == ODP_POOL_INVALID) return 0;
 	
+	if(table->max>=NET_NIFTAB_MAX_NIFS) return 0;
+	nif = &(table->table[table->max]);
+	nif->ipv4 = 0;
+	
+	odp_queue_param_init(&loop_p);
+	loop_p.type        = ODP_QUEUE_TYPE_SCHED;
+	loop_p.enq_mode    = ODP_QUEUE_OP_MT;
 	loop = odp_queue_create(str_join(dev,"(loopback)"),&loop_p);
 	DEBUG( loop==ODP_QUEUE_INVALID );
 	if(loop==ODP_QUEUE_INVALID) return 0;
-	odp_queue_context_set(loop,table,sizeof(*table));
-	
-	nif = &(table->table[table->max]);
 	nif->loopback = loop;
-	nif->ipv4 = 0;
 	
 	/*
 	 * Open network interface.
@@ -95,14 +137,23 @@ nif_t* fastnet_openpktio(nif_table_t* table,const char* dev,odp_pool_t pool) {
 	 */
 	nif->hwaddr = fastnet_mac_to_int(mac_addr);
 	
+	/* Complete the NIF structure */
+	nif->pktio = pktio;
+	
+	odp_queue_context_set(loop,nif,sizeof(*nif));
+	
 	/*
 	 * Configure input-queues.
 	 */
-	#define CONFIGURE_PKTIN do{                              \
-	odp_pktin_queue_param_init(&pktin_qp);                   \
-	pktin_qp.queue_param.sched.sync = ODP_SCHED_SYNC_ATOMIC; \
+	#define CONFIGURE_PKTIN do{                               \
+	odp_pktin_queue_param_init(&pktin_qp);                    \
+	pktin_qp.queue_param.sched.sync  = ODP_SCHED_SYNC_ATOMIC; \
+	pktin_qp.queue_param.context     = nif;                   \
+	pktin_qp.queue_param.context_len = sizeof(*nif);          \
 	}while(0)
+	
 	CONFIGURE_PKTIN;
+	
 	DBGPF("pktin_qp.num_queues %d -> %d\n",(int)(pktin_qp.num_queues),table->workers);
 	pktin_qp.num_queues             = table->workers;
 	if (odp_pktin_queue_config(pktio, &pktin_qp)) {
@@ -154,9 +205,6 @@ nif_t* fastnet_openpktio(nif_table_t* table,const char* dev,odp_pool_t pool) {
 	DBGPF("ret = odp_pktio_start(pktio);\n");
 	DEBUG(ret == 0);
 	if (ret != 0) goto error1;
-	
-	/* Complete NIF structure. */
-	nif->pktio = pktio;
 	
 	/*
 	 * Increment size pointer.

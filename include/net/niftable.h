@@ -31,6 +31,8 @@ typedef struct {
 
 void fastnet_tlp_init();
 
+int fastnet_pools_init(uint32_t pktsize,uint32_t pktnum,uint32_t poutsize,uint32_t poutnum);
+
 int fastnet_niftable_prepare(nif_table_t* table,odp_instance_t instance);
 
 /*
@@ -38,7 +40,7 @@ int fastnet_niftable_prepare(nif_table_t* table,odp_instance_t instance);
  *
  * Returns non-0 on success, 0 on failure.
  */
-nif_t* fastnet_openpktio(nif_table_t* table,const char* dev,odp_pool_t pool);
+nif_t* fastnet_openpktio(nif_table_t* table,const char* dev);
 
 
 void fastnet_runthreads(nif_table_t* table);
