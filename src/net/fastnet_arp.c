@@ -143,6 +143,8 @@ int fastnet_arp_output(ipv4_addr_t src,ipv4_addr_t dst,nif_t* nif){
 	pkt  = odp_packet_alloc(pool,sizeof(arp_pkt_t));
 	if(odp_unlikely(pkt == ODP_PACKET_INVALID)) return 0;
 	
+	hdr = odp_packet_offset(pkt,0,NULL,NULL);
+	
 	hdr->eth.type = odp_cpu_to_be_16(NETPROT_L3_ARP);
 	hdr->arp.hard_type = odp_cpu_to_be_16(1);            /* The type of hardware address (=1 for Ethernet).*/
 	hdr->arp.prot_type = odp_cpu_to_be_16(0x0800);       /* The type of protocol address (=0x0800 for IP). */
