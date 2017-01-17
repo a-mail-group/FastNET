@@ -126,3 +126,69 @@ netpp_retcode_t fastnet_arp_input(odp_packet_t pkt){
 }
 
 
+typedef struct ODP_PACKED {
+	fnet_eth_header_t eth;
+	fnet_arp_header_t arp;
+} arp_pkt_t;
+
+int fastnet_arp_output(ipv4_addr_t src,ipv4_addr_t dst,nif_t* nif){
+	odp_pool_t      pool;
+	odp_packet_t    pkt;
+	arp_pkt_t*      hdr;
+	netpp_retcode_t ret;
+	
+	pool = odp_pool_lookup("fn_pktout");
+	if(odp_unlikely(pool == ODP_POOL_INVALID)) return 0;
+	
+	pkt  = odp_packet_alloc(pool,sizeof(arp_pkt_t));
+	if(odp_unlikely(pkt == ODP_PACKET_INVALID)) return 0;
+	
+	hdr->eth.type = odp_cpu_to_be_16(NETPROT_L3_ARP);
+	hdr->arp.hard_type = odp_cpu_to_be_16(1);            /* The type of hardware address (=1 for Ethernet).*/
+	hdr->arp.prot_type = odp_cpu_to_be_16(0x0800);       /* The type of protocol address (=0x0800 for IP). */
+	hdr->arp.hard_size = 6;                              /* The size in bytes of the hardware address (=6). */
+	hdr->arp.prot_size = 4;                              /* The size in bytes of the protocol address (=4). */
+	hdr->arp.op = odp_cpu_to_be_16(FNET_ARP_OP_REQUEST); /* Opcode. */
+	/*
+	 * Destination addresses:
+	 * - Ethernet header: broadcast-address
+	 * - ARP header: NULL-address.
+	 */
+	hdr->eth.destination_addr[0] = 0xff;
+	hdr->eth.destination_addr[1] = 0xff;
+	hdr->eth.destination_addr[2] = 0xff;
+	hdr->eth.destination_addr[3] = 0xff;
+	hdr->eth.destination_addr[4] = 0xff;
+	hdr->eth.destination_addr[5] = 0xff;
+	hdr->arp.target_hard_addr[0] = 0;
+	hdr->arp.target_hard_addr[1] = 0;
+	hdr->arp.target_hard_addr[2] = 0;
+	hdr->arp.target_hard_addr[3] = 0;
+	hdr->arp.target_hard_addr[4] = 0;
+	hdr->arp.target_hard_addr[5] = 0;
+	
+	/*
+	 * Set Source and Destination IP addresses in the ARP header
+	 */
+	hdr->arp.sender_prot_addr = src;
+	hdr->arp.target_prot_addr = dst;
+	
+	I2M(hdr->arp.sender_hard_addr,nif->hwaddr);
+	I2M(hdr->eth.source_addr     ,nif->hwaddr);
+	
+	odp_packet_l2_offset_set(pkt,0);
+	odp_packet_l3_offset_set(pkt,sizeof(fnet_eth_header_t));
+	odp_packet_has_eth_set(pkt,1);
+	odp_packet_has_arp_set(pkt,1);
+	
+	ret = fastnet_pkt_output(pkt,nif);
+	if(odp_unlikely(ret!=NETPP_CONSUMED)){
+		odp_packet_free(pkt);
+		return 0;
+	}
+	
+	return 1;
+}
+
+
+
