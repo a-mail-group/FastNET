@@ -34,6 +34,11 @@ struct fn_transport_layer_protocol fn_in_protocols[] = {
 		.in_hook = fastnet_udp_input,
 	},
 	{
+		.in_pt = INPT_IPV4_ONLY,
+		.in_protocol = IP_PROTOCOL_ICMP,
+		.in_hook = fastnet_icmpv4_input,
+	},
+	{
 		.in_pt = INPT_DEFAULT,
 		.in_hook = def_protocol,
 	},

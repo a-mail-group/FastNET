@@ -17,7 +17,7 @@
 
 static inline uint16_t cksum_finalize(uint32_t chk){
 	uint16_t res = (uint16_t)chk;
-	return chk;
+	return ~chk;
 }
 
 static inline 
@@ -28,6 +28,27 @@ uint32_t l4_sum_part(uint16_t* __restrict__ data,uint32_t checksum,uint32_t word
 	checksum = (checksum>>16) + (checksum & 0xffff);
 	
 	return checksum;
+}
+
+uint16_t fastnet_ipv4_hdr_checksum(odp_packet_t pkt){
+	uint32_t length,cksum,max,off;
+	void* ptr;
+	
+	off = odp_packet_l3_offset(pkt);
+	
+	/*
+	 * XXX
+	 * Here, We blindly assume, the header is in contigous space.
+	 */
+	
+	ptr = odp_packet_offset(pkt,off,&length,NULL);
+	/* Obtain IPv4 header length. */
+	max = ((*((uint8_t*)ptr))&0xf)*4;
+	if(length>max) length=max;
+	
+	cksum = l4_sum_part((uint16_t*)ptr,0,length/2);
+	cksum = (cksum>>16) + (cksum & 0xffff);
+	return cksum_finalize(cksum);
 }
 
 uint16_t fastnet_checksum(odp_packet_t pkt,uint32_t offset,uint32_t cksuminit,nif_t* nif,uint32_t offload_flags){

@@ -18,6 +18,8 @@
 #include <net/header/ip.h>
 #include <net/header/ip6.h>
 
+uint16_t fastnet_ipv4_hdr_checksum(odp_packet_t pkt);
+
 uint16_t fastnet_checksum(odp_packet_t pkt,uint32_t offset,uint32_t cksuminit,nif_t* nif,uint32_t offload_flags);
 uint16_t fastnet_ip_ph(ipv4_addr_t src,ipv4_addr_t dst,uint8_t prot);
 uint16_t fastnet_ip6_ph(ipv6_addr_t src,ipv6_addr_t dst,uint8_t prot);

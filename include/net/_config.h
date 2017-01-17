@@ -26,7 +26,7 @@
 #ifdef NET_ASSERTIONS
 #include <stdio.h>
 #include <stdlib.h>
-#define NET_ASSERT(n,...) do if(n){ printf("" __VA_ARGS__); abort(); }while(0)
+#define NET_ASSERT(n,...) do if(!(n)){ printf("" __VA_ARGS__); abort(); }while(0)
 #else
 #define NET_ASSERT(...) (void)0
 #endif

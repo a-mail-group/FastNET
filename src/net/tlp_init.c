@@ -89,6 +89,9 @@ static void init(){
 		case INPT_IPV6_ONLY:
 			fn_in6_protocol_idx[fn_in_protocols[i].in_protocol] = i;
 			break;
+		case INPT_IPV4_ONLY:
+			fn_in4_protocol_idx[fn_in_protocols[i].in_protocol] = i;
+			break;
 		}
 		
 		/*

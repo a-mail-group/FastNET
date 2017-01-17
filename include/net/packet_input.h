@@ -20,6 +20,7 @@ netpp_retcode_t fastnet_ip_input(odp_packet_t pkt);
 netpp_retcode_t fastnet_tcp_input(odp_packet_t pkt);
 netpp_retcode_t fastnet_udp_input(odp_packet_t pkt);
 netpp_retcode_t fastnet_arp_input(odp_packet_t pkt);
+netpp_retcode_t fastnet_icmpv4_input(odp_packet_t pkt);
 
 netpp_retcode_t fastnet_classified_input(odp_packet_t pkt);
 netpp_retcode_t fastnet_raw_input(odp_packet_t pkt);

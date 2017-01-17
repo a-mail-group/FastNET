@@ -26,6 +26,7 @@ enum {
 	INPT_DEFAULT,    /* Default handler, if no other Protocol handler is defined. */
 	INPT_DEFAULT6,   /* Default handler, if no other Protocol handler is defined (IPv6). */
 	INPT_IPV6_ONLY,  /* A transport protocol for IPv6 only. */
+	INPT_IPV4_ONLY,  /* A transport protocol for IPv4 only. */
 };
 
 struct fn_transport_layer_protocol {
