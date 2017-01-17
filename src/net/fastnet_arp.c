@@ -66,13 +66,15 @@ netpp_retcode_t fastnet_arp_input(odp_packet_t pkt){
 	ipv4_addr_t         sender_prot_addr;
 	ipv4_addr_t         target_prot_addr;
 	uint64_t            sender_hard_addr;
-	//uint64_t            target_hard_addr;
+	uint64_t            target_hard_addr;
 	uint32_t            pretrail;
 	int                 is_ours;
 	
 	nif = odp_packet_user_ptr(pkt);
 	
 	if(odp_unlikely(nif->ipv4 == NULL)) return NETPP_DROP;
+	
+	target_hard_addr = nif->hwaddr;
 	
 	arp_hdr = odp_packet_l3_ptr(pkt,NULL);
 	if (odp_unlikely(arp_hdr == NULL)) return NETPP_DROP;
@@ -108,12 +110,12 @@ netpp_retcode_t fastnet_arp_input(odp_packet_t pkt){
 		arp_hdr->op = odp_cpu_to_be_16(FNET_ARP_OP_REPLY); /* Opcode */
 		
 		I2M(arp_hdr->target_hard_addr,sender_hard_addr);
-		I2M(arp_hdr->sender_hard_addr,nif->hwaddr);
+		I2M(arp_hdr->sender_hard_addr,target_hard_addr);
 		
 		arp_hdr->target_prot_addr = arp_hdr->sender_prot_addr;
 		arp_hdr->sender_prot_addr = nif->ipv4->address;
 		
-		arp_setmacaddrs(odp_packet_l2_ptr(pkt,NULL),sender_hard_addr,nif->hwaddr);
+		arp_setmacaddrs(odp_packet_l2_ptr(pkt,NULL),sender_hard_addr,target_hard_addr);
 		
 		pretrail = odp_packet_l2_offset(pkt);
 		if(odp_unlikely(pretrail>0))
@@ -191,6 +193,4 @@ int fastnet_arp_output(ipv4_addr_t src,ipv4_addr_t dst,nif_t* nif){
 	
 	return 1;
 }
-
-
 

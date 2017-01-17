@@ -125,7 +125,7 @@ static void ipv4_setmacaddrs(fnet_eth_header_t* __restrict__ ethp, uint64_t src,
 	ethp->source_addr[4] = dsti.addr8[4];
 	ethp->source_addr[5] = dsti.addr8[5];
 	
-	ethp->type = NETPROT_L3_IPV4;
+	ethp->type = odp_cpu_to_be_16(NETPROT_L3_IPV4);
 }
 
 static

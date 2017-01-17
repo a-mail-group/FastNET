@@ -25,22 +25,22 @@
 #include <net/ip_next_hop.h>
 #include <net/checksum.h>
 
-struct udpiphdr {
+typedef struct ODP_PACKED {
 	fnet_ip_header_t  ip;
 	fnet_udp_header_t udp;
-};
+} udpiphdr_t;
 
-struct udpip6hdr {
+typedef struct ODP_PACKED {
 	fnet_ip6_header_t ip6;
 	fnet_udp_header_t udp;
-};
+} udpip6hdr_t;
 
 
 static inline
 netpp_retcode_t udp_set_head(odp_packet_t pkt, fastnet_ip_pair_t addrs, uint16_t srcport, uint16_t dstport, odp_bool_t isipv6,uint32_t pktlen){
 	int isbc;
-	struct udpiphdr*  __restrict__ uh4;
-	struct udpip6hdr* __restrict__ uh6;
+	udpiphdr_t*  __restrict__ uh4;
+	udpip6hdr_t* __restrict__ uh6;
 	/*
 	 * 0xffff - 20 => 0xffeb
 	 */
@@ -52,7 +52,7 @@ netpp_retcode_t udp_set_head(odp_packet_t pkt, fastnet_ip_pair_t addrs, uint16_t
 	
 	odp_packet_l3_offset_set(pkt,0);
 	if(isipv6){
-		uh6 = odp_packet_push_head(pkt,sizeof(struct udpip6hdr));
+		uh6 = odp_packet_push_head(pkt,sizeof(udpip6hdr_t));
 		uh6->udp.source_port           = srcport;
 		uh6->udp.destination_port      = dstport;
 		uh6->udp.length                = odp_cpu_to_be_16(pktlen);
@@ -71,7 +71,7 @@ netpp_retcode_t udp_set_head(odp_packet_t pkt, fastnet_ip_pair_t addrs, uint16_t
 		odp_packet_l4_offset_set(pkt,sizeof(fnet_ip6_header_t));
 	}else{
 		isbc = IP4_ADDR_IS_MULTICAST(addrs.ipv4.dst);
-		uh4 = odp_packet_push_head(pkt,sizeof(struct udpiphdr));
+		uh4 = odp_packet_push_head(pkt,sizeof(udpiphdr_t));
 		uh4->udp.source_port           = srcport;
 		uh4->udp.destination_port      = dstport;
 		uh4->udp.length                = odp_cpu_to_be_16(pktlen);
