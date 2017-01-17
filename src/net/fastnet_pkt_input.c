@@ -57,6 +57,9 @@ netpp_retcode_t fastnet_classified_input(odp_packet_t pkt){
 	if(odp_packet_has_ipv4(pkt))
 		return fastnet_ip_input(pkt);
 	
+	if(odp_packet_has_arp(pkt))
+		return fastnet_arp_input(pkt);
+	
 	//if(odp_packet_has_ipv6(pkt)) NET_LOG("Has IPv6 packet!\n");
 	return NETPP_DROP;
 }

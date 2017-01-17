@@ -4,4 +4,4 @@ ifconfig tap1 192.168.99.14 netmask 255.255.0.0 up
 
 #BTW: The program's IP is 192.168.99.109
 
-
+#udpping -4 -l 192.168.99.14:64000 -r 192.168.99.109:64000

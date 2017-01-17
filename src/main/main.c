@@ -157,8 +157,8 @@ int main(){
 		EXAMPLE_ABORT("Error: pktio create failed.\n");
 	nif->ipv4 = ipv4;
 	
-	table->function = handle_packet;
-	//table->function = fastnet_classified_input;
+	//table->function = handle_packet;
+	table->function = fastnet_classified_input;
 	
 	/* ---------------------Thread Code.----------------------- */
 	

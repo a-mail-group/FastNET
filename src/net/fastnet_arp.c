@@ -21,6 +21,7 @@
 #include <net/ipv4.h>
 #include <net/header/arphdr.h>
 #include <net/ipv4_mac_cache.h>
+#include <net/packet_input.h>
 #include <net/packet_output.h>
 #include <net/header/ethhdr.h>
 #include <net/mac_addr_ldst.h>
