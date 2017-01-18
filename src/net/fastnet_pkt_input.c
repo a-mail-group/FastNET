@@ -26,12 +26,14 @@ netpp_retcode_t fastnet_ip_input(odp_packet_t pkt){
 	ipv4_addr_t                      dest_addr;
 	int                              is_ours;
 	uint8_t                          next_header;
+	uint16_t                         cksum;
 	
 	ip = odp_packet_l3_ptr(pkt,NULL);
 	if (odp_unlikely(ip == NULL)) return NETPP_DROP;
 	
 	if(odp_unlikely(FNET_IP_HEADER_GET_VERSION(ip)!=4)) return NETPP_DROP;
-	/* TODO: checksum. */
+	cksum = fastnet_ipv4_hdr_checksum(pkt);
+	if(odp_unlikely(cksum != 0)) return NETPP_DROP;
 	
 	dest_addr = ip->desination_addr;
 	

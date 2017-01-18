@@ -111,19 +111,19 @@ static void ipv4_setmacaddrs(fnet_eth_header_t* __restrict__ ethp, uint64_t src,
 		uint64_t addr64 ODP_PACKED;
 	} dsti = { .addr64 = dst };
 	
-	ethp->destination_addr[0] = srci.addr8[0];
-	ethp->destination_addr[1] = srci.addr8[1];
-	ethp->destination_addr[2] = srci.addr8[2];
-	ethp->destination_addr[3] = srci.addr8[3];
-	ethp->destination_addr[4] = srci.addr8[4];
-	ethp->destination_addr[5] = srci.addr8[5];
+	ethp->destination_addr[0] = dsti.addr8[0];
+	ethp->destination_addr[1] = dsti.addr8[1];
+	ethp->destination_addr[2] = dsti.addr8[2];
+	ethp->destination_addr[3] = dsti.addr8[3];
+	ethp->destination_addr[4] = dsti.addr8[4];
+	ethp->destination_addr[5] = dsti.addr8[5];
 	
-	ethp->source_addr[0] = dsti.addr8[0];
-	ethp->source_addr[1] = dsti.addr8[1];
-	ethp->source_addr[2] = dsti.addr8[2];
-	ethp->source_addr[3] = dsti.addr8[3];
-	ethp->source_addr[4] = dsti.addr8[4];
-	ethp->source_addr[5] = dsti.addr8[5];
+	ethp->source_addr[0] = srci.addr8[0];
+	ethp->source_addr[1] = srci.addr8[1];
+	ethp->source_addr[2] = srci.addr8[2];
+	ethp->source_addr[3] = srci.addr8[3];
+	ethp->source_addr[4] = srci.addr8[4];
+	ethp->source_addr[5] = srci.addr8[5];
 	
 	ethp->type = odp_cpu_to_be_16(NETPROT_L3_IPV4);
 }

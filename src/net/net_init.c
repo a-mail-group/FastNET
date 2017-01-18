@@ -21,6 +21,13 @@
 #include <net/mac_addr_ldst.h>
 #include <net/requirement.h>
 
+#if 1
+#include <stdio.h>
+#define SHOW(...) printf(__VA_ARGS__)
+#else
+#define SHOW(...) (void)0
+#endif
+
 #if 0
 #include <stdio.h>
 #define DEBUG(x) printf(#x " = %d\n",x)
@@ -123,7 +130,7 @@ nif_t* fastnet_openpktio(nif_table_t* table,const char* dev) {
 		DBGPF("Device '%s' has no MAC address.\n",dev);
 		goto error1;
 	}
-	DBGPF("Device '%s' MAC address is %02x:%02x:%02x:%02x:%02x:%02x\n",dev,
+	SHOW("Device '%s' MAC address is %02x:%02x:%02x:%02x:%02x:%02x\n",dev,
 		(int)mac_addr[0],
 		(int)mac_addr[1],
 		(int)mac_addr[2],
