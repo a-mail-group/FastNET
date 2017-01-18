@@ -23,6 +23,7 @@
 #include <net/checksum.h>
 #include <net/header/layer4.h>
 #include <net/_config.h>
+#include <net/defaults.h>
 
 typedef struct{
 	ipv4_addr_t src,dst;
@@ -96,7 +97,7 @@ void add_response_header(ip_pair_t* pair,odp_packet_t pkt,uint32_t pktlen,uint32
 	ip->total_length           = odp_cpu_to_be_16(pktlen+sizeof(fnet_ip_header_t));
 	ip->id                     = 0;
 	ip->flags_fragment_offset  = 0;
-	ip->ttl                    = 64; /* FNET_UDP_TTL; */ /* TODO: sane constant, no magic number. */
+	ip->ttl                    = DATAGRAM_TTL;
 	ip->protocol               = IP_PROTOCOL_ICMP;
 	ip->checksum               = 0;
 	/*
