@@ -17,6 +17,7 @@
 #include <net/types.h>
 #include <net/_config.h>
 #include <net/header/iphdr.h>
+#include <net/header/ip6hdr.h>
 #include <net/packet_input.h>
 #include <net/in_tlp.h>
 
@@ -37,7 +38,7 @@ netpp_retcode_t fastnet_ip_input(odp_packet_t pkt){
 	
 	dest_addr = ip->desination_addr;
 	
-	is_ours = fastnet_ip_ishost(nif->ipv4,dest_addr);
+	is_ours = fastnet_ip_isforme(nif->ipv4,dest_addr);
 	
 	if(is_ours){
 		odp_packet_l4_offset_set(pkt,odp_packet_l3_offset(pkt)+(FNET_IP_HEADER_GET_HEADER_LENGTH(ip)*4));
@@ -55,6 +56,25 @@ netpp_retcode_t fastnet_ip_input(odp_packet_t pkt){
 	return NETPP_DROP;
 }
 
+netpp_retcode_t fastnet_ip6_input(odp_packet_t pkt){
+	fnet_ip6_header_t * __restrict__  ip6;
+	nif_t*                            nif = odp_packet_user_ptr(pkt);
+	ipv6_addr_t                       dest_addr;
+	int                               is_ours;
+	int                               next_header;
+	
+	ip6 = odp_packet_l3_ptr(pkt,NULL);
+	if(odp_unlikely(ip6 == NULL)) return NETPP_DROP;
+	
+	if(odp_unlikely((odp_be_to_cpu_32(ip6->version_tclass_flowl)>>28)!=6)) return NETPP_DROP;
+	
+	dest_addr = ip6->destination_addr;
+	
+	/* TODO: identify packets, targeted at this host. */
+	/* TODO: forward */
+	return NETPP_DROP;
+}
+
 netpp_retcode_t fastnet_classified_input(odp_packet_t pkt){
 	if(odp_packet_has_ipv4(pkt))
 		return fastnet_ip_input(pkt);
@@ -62,7 +82,8 @@ netpp_retcode_t fastnet_classified_input(odp_packet_t pkt){
 	if(odp_packet_has_arp(pkt))
 		return fastnet_arp_input(pkt);
 	
-	//if(odp_packet_has_ipv6(pkt)) NET_LOG("Has IPv6 packet!\n");
+	if(odp_packet_has_ipv6(pkt))
+		return fastnet_ip6_input(pkt);
 	return NETPP_DROP;
 }
 

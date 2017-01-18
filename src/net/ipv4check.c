@@ -49,7 +49,8 @@ int fastnet_ip_onlink(struct ipv4_nif_struct *ipv4,ipv4_addr_t addr){
 		 * Is the IPv4 address on-link?
 		 */
 		IP4ADDR_EQ( (ipv4->subnetmask & addr) , ipv4->subnet ) ||
-		/* RFC3927: If the destination address is in the 169.254/16 prefix, then the sender
+		/*
+		 * RFC3927: If the destination address is in the 169.254/16 prefix, then the sender
 		 * MUST send its packet directly to the destination on the same physical link.  This MUST be
 		 * done whether the interface is configured with a Link-Local or a routable IPv4 address.
 		 */
@@ -59,6 +60,21 @@ int fastnet_ip_onlink(struct ipv4_nif_struct *ipv4,ipv4_addr_t addr){
 
 int fastnet_ip_ishost(struct ipv4_nif_struct *ipv4,ipv4_addr_t addr) {
 	if(odp_unlikely(!ipv4) ) return 0; /* Null-Pointer check */
+	return IP4ADDR_EQ(addr,ipv4->address);
+}
+
+int fastnet_ip_isforme  (struct ipv4_nif_struct *ipv4,ipv4_addr_t addr){
+	if(
+		IP4ADDR_EQ(addr,IP4_ADDR_BROADCAST)|| /* Limited broadcast */
+		IP4ADDR_EQ(addr,0)||
+		IP4ADDR_EQ(addr,IP4_ADDR_LINK_LOCAL_BROADCAST) /* Link-local broadcast (RFC3927)*/
+	) return 1;
+	if(odp_unlikely(!ipv4) ) return 0; /* Null-Pointer check */
+	if(
+		IP4ADDR_EQ(addr,ipv4->netbroadcast)||
+		IP4ADDR_EQ(addr,ipv4->subnetbroadcast)||
+		IP4ADDR_EQ(addr,ipv4->subnet)
+	) return 1;
 	return IP4ADDR_EQ(addr,ipv4->address);
 }
 

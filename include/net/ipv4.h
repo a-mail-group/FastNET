@@ -33,6 +33,12 @@ int fastnet_ip_broadcast(struct ipv4_nif_struct *ipv4,ipv4_addr_t addr);
 int fastnet_ip_onlink   (struct ipv4_nif_struct *ipv4,ipv4_addr_t addr);
 int fastnet_ip_ishost   (struct ipv4_nif_struct *ipv4,ipv4_addr_t addr);
 
+/*
+ * Checks, wether a destination address is targeted at THIS host.
+ * Eighter that address is recognized by fastnet_ip_ishost() or fastnet_ip_broadcast().
+ */
+int fastnet_ip_isforme  (struct ipv4_nif_struct *ipv4,ipv4_addr_t addr);
+
 void fastnet_ip_reass(odp_packet_t *pkt);
 
 
