@@ -26,6 +26,7 @@
 #define NET_NIF_MAX_QUEUE 128
 
 struct ipv4_nif_struct;
+struct ipv6_nif_struct;
 
 typedef struct _nif_t {
 	odp_pktio_t pktio;
@@ -38,6 +39,7 @@ typedef struct _nif_t {
 	
 	uint64_t    hwaddr;
 	struct ipv4_nif_struct *ipv4;
+	struct ipv6_nif_struct *ipv6;
 } nif_t;
 
 

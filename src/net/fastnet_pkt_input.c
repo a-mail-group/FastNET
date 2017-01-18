@@ -18,8 +18,31 @@
 #include <net/_config.h>
 #include <net/header/iphdr.h>
 #include <net/header/ip6hdr.h>
+#include <net/header/ip6defs.h>
+#include <net/header/layer4.h>
 #include <net/packet_input.h>
 #include <net/in_tlp.h>
+
+#if 0
+static void print_next_header(char ipv,int next_header){
+		const char* x = "?";
+		switch(next_header){
+		case IP_PROTOCOL_HOPOPTS: x = "IP_PROTOCOL_HOPOPTS (Hop by hop)"; break;
+		case IP_PROTOCOL_ICMP   : x = "IP_PROTOCOL_ICMP"; break;
+		case IP_PROTOCOL_IGMP   : x = "IP_PROTOCOL_IGMP"; break;
+		case IP_PROTOCOL_TCP    : x = "IP_PROTOCOL_TCP"; break;
+		case IP_PROTOCOL_UDP    : x = "IP_PROTOCOL_UDP"; break;
+		case IP_PROTOCOL_ROUTE  : x = "IP_PROTOCOL_GRE (IPv6 Routing header.)"; break;
+		case IP_PROTOCOL_GRE    : x = "IP_PROTOCOL_GRE"; break;
+		case IP_PROTOCOL_FRAG   : x = "IP_PROTOCOL_FRAG (IPv6 Fragment)"; break;
+		case IP_PROTOCOL_ESP    : x = "IP_PROTOCOL_ESP (IPSec Encapsulated Payload)"; break;
+		case IP_PROTOCOL_AH     : x = "IP_PROTOCOL_AH (IPSec Authentication Header)"; break;
+		case IP_PROTOCOL_ICMP6  : x = "IP_PROTOCOL_ICMP6"; break;
+		case IP_PROTOCOL_INVALID: x = "IP_PROTOCOL_INVALID (Reserved invalid by IANA)"; break;
+		}
+		NET_LOG("IPv%c packet: %s (%d)\n",ipv,x,next_header);
+}
+#endif
 
 netpp_retcode_t fastnet_ip_input(odp_packet_t pkt){
 	fnet_ip_header_t * __restrict__  ip;
@@ -59,18 +82,55 @@ netpp_retcode_t fastnet_ip_input(odp_packet_t pkt){
 netpp_retcode_t fastnet_ip6_input(odp_packet_t pkt){
 	fnet_ip6_header_t * __restrict__  ip6;
 	nif_t*                            nif = odp_packet_user_ptr(pkt);
+	netpp_retcode_t                   ret;
 	ipv6_addr_t                       dest_addr;
+	ipv6_addr_t                       src_addr;
 	int                               is_ours;
 	int                               next_header;
+	int                               proto_idx;
+	
+	if(odp_unlikely(fastnet_ipv6_deactivated(nif->ipv6))) return NETPP_DROP;
 	
 	ip6 = odp_packet_l3_ptr(pkt,NULL);
 	if(odp_unlikely(ip6 == NULL)) return NETPP_DROP;
 	
+	/*
+	 * Check the IPv6 header correctness.
+	 */
 	if(odp_unlikely((odp_be_to_cpu_32(ip6->version_tclass_flowl)>>28)!=6)) return NETPP_DROP;
 	
+	/*
+	 * Get IPv6 addresses.
+	 */
+	src_addr  = ip6->source_addr;
 	dest_addr = ip6->destination_addr;
 	
-	/* TODO: identify packets, targeted at this host. */
+	/*
+	 * RFC-4291  2.7.  "Multicast Addresses"
+	 * Multicast addresses must not be used as source addresses
+	 * in IPv6 packets or appear in any Routing header.
+	 */
+	if(odp_unlikely(IP6_ADDR_IS_MULTICAST(src_addr))) return NETPP_DROP;
+	
+	/*
+	 * Check, wether this IP address is targeted at us.
+	 */
+	is_ours = fastnet_ipv6_addr_is_self(nif->ipv6,&dest_addr);
+	
+	if(is_ours){
+		next_header = ip6->next_header;
+		
+		ip6 = NULL;
+		odp_packet_l4_offset_set(pkt,odp_packet_l3_offset(pkt)+sizeof(fnet_ip6_header_t));
+		
+		ret = NETPP_CONTINUE;
+		while(ret==NETPP_CONTINUE && next_header<IP_NO_PROTOCOL){
+			proto_idx = fn_in6_protocol_idx[next_header];
+			ret = fn_in_protocols[proto_idx].in6_hook(pkt,&next_header,proto_idx);
+		}
+		return ret;
+	}
+	
 	/* TODO: forward */
 	return NETPP_DROP;
 }

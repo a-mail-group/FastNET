@@ -19,6 +19,7 @@
 #include <net/in_tlp.h>
 #include <net/niftable.h>
 #include <net/ipv4.h>
+#include <net/ipv6.h>
 #include <net/packet_input.h>
 #include <net/header/ip.h>
 #include <net/requirement.h>
@@ -130,7 +131,9 @@ int main(){
 	nif_table_t *table;
 	nif_t *nif;
 	struct ipv4_nif_struct* ipv4;
+	struct ipv6_nif_struct* ipv6;
 	ipv4 = calloc(sizeof(*ipv4),1);
+	ipv6 = calloc(sizeof(*ipv6),1);
 	fastnet_ip_set(ipv4,ipv4_addr_init(192,168,99,109),ipv4_addr_init(0xff,0xff,0,0));
 	// Ping me: 192.168.99.109
 	
@@ -156,6 +159,7 @@ int main(){
 	if(!nif)
 		EXAMPLE_ABORT("Error: pktio create failed.\n");
 	nif->ipv4 = ipv4;
+	nif->ipv6 = ipv6;
 	
 	//table->function = handle_packet;
 	table->function = fastnet_classified_input;
