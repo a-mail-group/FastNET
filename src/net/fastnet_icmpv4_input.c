@@ -1,5 +1,5 @@
 /*
- *   Copyright 2016 Simon Schmidt
+ *   Copyright 2016-2017 Simon Schmidt
  *   Copyright 2011-2016 by Andrey Butok. FNET Community.
  *   Copyright 2008-2010 by Andrey Butok. Freescale Semiconductor, Inc.
  *   Copyright 2003 by Andrey Butok. Motorola SPS.
