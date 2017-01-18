@@ -15,6 +15,7 @@
  */
 #include <net/in_tlp.h>
 
+#include <net/ip6ext.h>
 #include <net/packet_input.h>
 #include <net/header/layer4.h>
 
@@ -38,6 +39,13 @@ struct fn_transport_layer_protocol fn_in_protocols[] = {
 		.in_protocol = IP_PROTOCOL_ICMP,
 		.in_hook = fastnet_icmpv4_input,
 	},
+	
+	{
+		.in_pt = INPT_IPV6_ONLY,
+		.in_protocol = IP_PROTOCOL_HOPOPTS,
+		.in6_hook = fastnet_ip6x_hopopts,
+	},
+	
 	{
 		.in_pt = INPT_DEFAULT,
 		.in_hook = def_protocol,
