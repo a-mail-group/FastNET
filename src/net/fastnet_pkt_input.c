@@ -24,7 +24,7 @@
 #include <net/in_tlp.h>
 #include <net/safe_packet.h>
 
-#if 1
+#if 0
 static void print_next_header(char ipv,int next_header){
 		const char* x = "?";
 		switch(next_header){
@@ -125,13 +125,10 @@ netpp_retcode_t fastnet_ip6_input(odp_packet_t pkt){
 		ip6 = NULL;
 		odp_packet_l4_offset_set(pkt,odp_packet_l3_offset(pkt)+sizeof(fnet_ip6_header_t));
 		
-		NET_LOG("--------------------------\n");
 		ret = NETPP_CONTINUE;
-		print_next_header('6',next_header);
 		while(ret==NETPP_CONTINUE && next_header<IP_NO_PROTOCOL){
 			proto_idx = fn_in6_protocol_idx[next_header];
 			ret = fn_in_protocols[proto_idx].in6_hook(pkt,&next_header,proto_idx);
-			print_next_header('6',next_header);
 		}
 		return ret;
 	}
