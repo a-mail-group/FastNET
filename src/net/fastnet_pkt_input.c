@@ -53,6 +53,7 @@ netpp_retcode_t fastnet_ip_input(odp_packet_t pkt){
 	int                              is_ours;
 	uint8_t                          next_header;
 	uint16_t                         cksum;
+	uint32_t                         havelen,shouldlen,offset,hdrlen;
 	
 	ip = fastnet_safe_l3(pkt,sizeof(fnet_ip_header_t));
 	if (odp_unlikely(ip == NULL)) return NETPP_DROP;
@@ -66,7 +67,16 @@ netpp_retcode_t fastnet_ip_input(odp_packet_t pkt){
 	is_ours = fastnet_ip_isforme(nif->ipv4,dest_addr);
 	
 	if(is_ours){
-		odp_packet_l4_offset_set(pkt,odp_packet_l3_offset(pkt)+(FNET_IP_HEADER_GET_HEADER_LENGTH(ip)*4));
+		offset = odp_packet_l3_offset(pkt);
+		hdrlen = FNET_IP_HEADER_GET_HEADER_LENGTH(ip)*4;
+		if(odp_unlikely(hdrlen<sizeof(fnet_ip_header_t))) return NETPP_DROP;
+		
+		odp_packet_l4_offset_set(pkt,offset+hdrlen);
+		havelen   = odp_packet_len(pkt)-offset;
+		shouldlen = odp_be_to_cpu_16(ip->total_length);
+		
+		if(odp_unlikely(havelen>shouldlen)) odp_packet_pull_tail(pkt,havelen-shouldlen);
+		else if(odp_unlikely(havelen<shouldlen)) return NETPP_DROP;
 		
 		next_header = ip->protocol;
 		
