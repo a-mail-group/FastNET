@@ -25,11 +25,7 @@
 #include <net/packet_output.h>
 #include <net/header/ethhdr.h>
 #include <net/mac_addr_ldst.h>
-
-#if 0
-#define mac_to_int fastnet_mac_to_int
-#define int_to_mac fastnet_int_to_mac
-#endif
+#include <net/safe_packet.h>
 
 #define M2I fastnet_mac_to_int
 #define I2M fastnet_int_to_mac
@@ -76,7 +72,7 @@ netpp_retcode_t fastnet_arp_input(odp_packet_t pkt){
 	
 	target_hard_addr = nif->hwaddr;
 	
-	arp_hdr = odp_packet_l3_ptr(pkt,NULL);
+	arp_hdr = fastnet_safe_l3(pkt,sizeof(fnet_arp_header_t));
 	if (odp_unlikely(arp_hdr == NULL)) return NETPP_DROP;
 	
 	sender_prot_addr = arp_hdr->sender_prot_addr;
@@ -101,6 +97,7 @@ netpp_retcode_t fastnet_arp_input(odp_packet_t pkt){
 		 */
 		fastnet_ip_arp_transmit(chain,nif,nif->hwaddr,sender_hard_addr);
 	}else{
+		is_ours = 0;
 		// TODO: duplicate address detection.
 	}
 	

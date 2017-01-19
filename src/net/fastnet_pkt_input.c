@@ -22,6 +22,7 @@
 #include <net/header/layer4.h>
 #include <net/packet_input.h>
 #include <net/in_tlp.h>
+#include <net/safe_packet.h>
 
 #if 1
 static void print_next_header(char ipv,int next_header){
@@ -53,7 +54,7 @@ netpp_retcode_t fastnet_ip_input(odp_packet_t pkt){
 	uint8_t                          next_header;
 	uint16_t                         cksum;
 	
-	ip = odp_packet_l3_ptr(pkt,NULL);
+	ip = fastnet_safe_l3(pkt,sizeof(fnet_ip_header_t));
 	if (odp_unlikely(ip == NULL)) return NETPP_DROP;
 	
 	if(odp_unlikely(FNET_IP_HEADER_GET_VERSION(ip)!=4)) return NETPP_DROP;
@@ -92,7 +93,7 @@ netpp_retcode_t fastnet_ip6_input(odp_packet_t pkt){
 	
 	if(odp_unlikely(fastnet_ipv6_deactivated(nif->ipv6))) return NETPP_DROP;
 	
-	ip6 = odp_packet_l3_ptr(pkt,NULL);
+	ip6 = fastnet_safe_l3(pkt,sizeof(fnet_ip6_header_t));
 	if(odp_unlikely(ip6 == NULL)) return NETPP_DROP;
 	
 	/*
