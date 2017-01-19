@@ -24,3 +24,6 @@ uint16_t fastnet_checksum(odp_packet_t pkt,uint32_t offset,uint32_t cksuminit,ni
 uint16_t fastnet_ip_ph(ipv4_addr_t src,ipv4_addr_t dst,uint8_t prot);
 uint16_t fastnet_ip6_ph(ipv6_addr_t src,ipv6_addr_t dst,uint8_t prot);
 
+uint16_t fastnet_ip4_checksum(odp_packet_t pkt,ipv4_addr_t src,ipv4_addr_t dst,uint8_t prot);
+uint16_t fastnet_ip6_checksum(odp_packet_t pkt,ipv6_addr_t src,ipv6_addr_t dst,uint8_t prot);
+

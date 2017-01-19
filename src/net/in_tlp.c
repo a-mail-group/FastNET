@@ -39,6 +39,11 @@ struct fn_transport_layer_protocol fn_in_protocols[] = {
 		.in_protocol = IP_PROTOCOL_ICMP,
 		.in_hook = fastnet_icmpv4_input,
 	},
+	{
+		.in_pt = INPT_IPV6_ONLY,
+		.in_protocol = IP_PROTOCOL_ICMP6,
+		.in_hook = fastnet_icmpv6_input,
+	},
 	
 	/* IPv6 Specific extension headers (recursive headers). */
 	{

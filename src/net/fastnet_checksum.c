@@ -17,7 +17,12 @@
 
 static inline uint16_t cksum_finalize(uint32_t chk){
 	uint16_t res = (uint16_t)chk;
-	return ~chk;
+	return ~res;
+}
+
+static inline uint16_t cksum_cast(uint32_t chk){
+	uint16_t res = (uint16_t)chk;
+	return res;
 }
 
 static inline 
@@ -100,7 +105,7 @@ uint16_t fastnet_ip_ph(ipv4_addr_t src,ipv4_addr_t dst,uint8_t prot){
 	uint32_t cksum = l4_sum_part((uint16_t*)&ph,0,sizeof(ph));
 	cksum = (cksum>>16) + (cksum&0xffff);
 	cksum = (cksum>>16) + (cksum&0xffff);
-	return cksum_finalize(cksum);
+	return cksum_cast(cksum);
 }
 uint16_t fastnet_ip6_ph(ipv6_addr_t src,ipv6_addr_t dst,uint8_t prot){
 	struct ODP_PACKED{
@@ -112,6 +117,58 @@ uint16_t fastnet_ip6_ph(ipv6_addr_t src,ipv6_addr_t dst,uint8_t prot){
 	uint32_t cksum = l4_sum_part((uint16_t*)&ph,0,sizeof(ph));
 	cksum = (cksum>>16) + (cksum&0xffff);
 	cksum = (cksum>>16) + (cksum&0xffff);
-	return cksum_finalize(cksum);
+	return cksum_cast(cksum);
 }
+
+uint16_t fastnet_ip4_checksum(odp_packet_t pkt,ipv4_addr_t src,ipv4_addr_t dst,uint8_t prot){
+	uint32_t offset,length,checksum;
+	struct ODP_PACKED
+	{
+		ipv4_addr_t src;
+		ipv4_addr_t dst;
+		uint8_t     pad0;
+		uint8_t     prot;
+		uint16_t    length;
+	} pseudo_header;
+	
+	offset = odp_packet_l4_offset(pkt);
+	length = odp_packet_len(pkt);
+	length -= offset;
+	
+	pseudo_header.src     = src;
+	pseudo_header.dst     = dst;
+	pseudo_header.length  = odp_cpu_to_be_16(cksum_cast(length));
+	pseudo_header.pad0    = 0;
+	pseudo_header.prot    = prot;
+	checksum = l4_sum_part((uint16_t*)(&pseudo_header),0,sizeof(pseudo_header)/2);
+	return fastnet_checksum(pkt,offset,checksum,NULL,0);
+}
+
+uint16_t fastnet_ip6_checksum(odp_packet_t pkt,ipv6_addr_t src,ipv6_addr_t dst,uint8_t prot){
+	uint32_t offset,length,checksum;
+	struct ODP_PACKED
+	{
+		ipv6_addr_t src;
+		ipv6_addr_t dst;
+		uint32_t    length;
+		uint8_t     pad0[3];
+		uint8_t     prot;
+	} pseudo_header;
+	
+	offset = odp_packet_l4_offset(pkt);
+	length = odp_packet_len(pkt);
+	length -= offset;
+	
+	pseudo_header.src     = src;
+	pseudo_header.dst     = dst;
+	pseudo_header.length  = odp_cpu_to_be_32(length);
+	pseudo_header.pad0[0] = 0;
+	pseudo_header.pad0[1] = 0;
+	pseudo_header.pad0[2] = 0;
+	pseudo_header.prot    = prot;
+	checksum = l4_sum_part((uint16_t*)(&pseudo_header),0,sizeof(pseudo_header)/2);
+	return fastnet_checksum(pkt,offset,checksum,NULL,0);
+}
+
+
 

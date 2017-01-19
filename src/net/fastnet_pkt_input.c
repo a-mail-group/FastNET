@@ -90,6 +90,7 @@ netpp_retcode_t fastnet_ip6_input(odp_packet_t pkt){
 	int                               is_ours;
 	int                               next_header;
 	int                               proto_idx;
+	uint32_t                          havelen,shouldlen,offset;
 	
 	if(odp_unlikely(fastnet_ipv6_deactivated(nif->ipv6))) return NETPP_DROP;
 	
@@ -122,8 +123,15 @@ netpp_retcode_t fastnet_ip6_input(odp_packet_t pkt){
 	if(is_ours){
 		next_header = ip6->next_header;
 		
+		shouldlen = odp_be_to_cpu_16(ip6->length);
+		
 		ip6 = NULL;
-		odp_packet_l4_offset_set(pkt,odp_packet_l3_offset(pkt)+sizeof(fnet_ip6_header_t));
+		offset = odp_packet_l3_offset(pkt)+sizeof(fnet_ip6_header_t);
+		odp_packet_l4_offset_set(pkt,offset);
+		havelen = odp_packet_len(pkt)-offset;
+		
+		if(odp_unlikely(havelen>shouldlen)) odp_packet_pull_tail(pkt,havelen-shouldlen);
+		else if(odp_unlikely(havelen<shouldlen)) return NETPP_DROP;
 		
 		ret = NETPP_CONTINUE;
 		while(ret==NETPP_CONTINUE && next_header<IP_NO_PROTOCOL){
