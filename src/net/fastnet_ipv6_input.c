@@ -16,7 +16,7 @@
  *   limitations under the License.
  */
 #include <net/ip6ext.h>
-
+#include <net/header/ip6ext.h>
 
 typedef struct ODP_PACKED {
 	uint8_t next_hdr;
@@ -35,21 +35,18 @@ enum{
 	I6OPT_DISCARD_UICMP,
 };
 
-static int fastnet_ip6_ext_process(odp_packet_t pkt,uint32_t pos,uint32_t size){
+static int fastnet_ip6_ext_process(odp_packet_t pkt,uint32_t pos,uint32_t end){
 	opt_hdr_t oh;
 	uint8_t type,datalen;
-	//oh = 
-
-	while(size){
-		odp_packet_copy_to_mem(pkt,pos,&oh,sizeof(oh));
+	
+	while(pos<end){
+		odp_packet_copy_to_mem(pkt,pos,sizeof(oh),&oh);
 		switch(oh.type){
 		case FNET_IP6_OPTION_TYPE_PAD1:
 			pos ++;
-			size--;
 			break;
 		case FNET_IP6_OPTION_TYPE_PADN:
 			pos += ((uint32_t)oh.len)+sizeof(oh);
-			size-= ((uint32_t)oh.len)+sizeof(oh);
 			break;
 		/*
 		 * RFC 6275  6.3.  Home Address Option:
@@ -72,7 +69,6 @@ static int fastnet_ip6_ext_process(odp_packet_t pkt,uint32_t pos,uint32_t size){
 		 */
 		case 0xC9:
 			pos += ((uint32_t)oh.len)+sizeof(oh);
-			size-= ((uint32_t)oh.len)+sizeof(oh);
 			break;
 		/*
 		 * RFC 6788   7.  Line-Identification Option (LIO)
@@ -101,7 +97,6 @@ static int fastnet_ip6_ext_process(odp_packet_t pkt,uint32_t pos,uint32_t size){
 			 *
 			 */
 			pos += ((uint32_t)oh.len)+sizeof(oh);
-			size-= ((uint32_t)oh.len)+sizeof(oh);
 			break;
 		
 		/* Endpoint Identification (DEPRECATED) [[CHARLES LYNN]] */
@@ -112,7 +107,6 @@ static int fastnet_ip6_ext_process(odp_packet_t pkt,uint32_t pos,uint32_t size){
 			 * We recognize this option. Skip it!
 			 */
 			pos += ((uint32_t)oh.len)+sizeof(oh);
-			size-= ((uint32_t)oh.len)+sizeof(oh);
 			break;
 		
 		/* RFC 7731 6.1. MPL Option */
@@ -136,7 +130,6 @@ static int fastnet_ip6_ext_process(odp_packet_t pkt,uint32_t pos,uint32_t size){
 			 * We fundamentally understand it, but it has no effect on us.
 			 */
 			pos += ((uint32_t)oh.len)+sizeof(oh);
-			size-= ((uint32_t)oh.len)+sizeof(oh);
 			break;
 		
 		/*
@@ -159,7 +152,6 @@ static int fastnet_ip6_ext_process(odp_packet_t pkt,uint32_t pos,uint32_t size){
 			 * We fundamentally understand it, but it has no effect on us.
 			 */
 			pos += ((uint32_t)oh.len)+sizeof(oh);
-			size-= ((uint32_t)oh.len)+sizeof(oh);
 			break;
 		
 		/*
@@ -171,9 +163,10 @@ static int fastnet_ip6_ext_process(odp_packet_t pkt,uint32_t pos,uint32_t size){
 			/* The Option Type identifiers are internally encoded such that their
 			 * highest-order two bits specify the action that must be taken if the
 			 * processing IPv6 node does not recognize the Option Type.*/
-			switch(>type & FNET_IP6_OPTION_TYPE_UNRECOGNIZED_MASK){
+			switch(type & FNET_IP6_OPTION_TYPE_UNRECOGNIZED_MASK){
 			/* 00 - skip over this option and continue processing the header.*/
 			case FNET_IP6_OPTION_TYPE_UNRECOGNIZED_SKIP:
+				pos += ((uint32_t)oh.len)+sizeof(oh);
 				break;
 			/* 01 - discard the packet. */
 			case FNET_IP6_OPTION_TYPE_UNRECOGNIZED_DISCARD:
@@ -196,31 +189,39 @@ static int fastnet_ip6_ext_process(odp_packet_t pkt,uint32_t pos,uint32_t size){
 	return I6OPT_KEEP;
 }
 
-netpp_retcode_t fastnet_ip6x_hopopts(odp_packet_t pkt,int* nxt, int idx){
-	ip_hopopts_t* ho;
+netpp_retcode_t fastnet_ip6x_hop_dst_opts(odp_packet_t pkt,int* nxt, int idx){
+	ip_hopopts_t ho;
 	uint32_t size,off;
 	
 	(void)idx;
 	
-	ho = odp_packet_l4_ptr(pkt,NULL);
-	
-	if(odp_unlikely(ho==NULL)) return NETPP_DROP;
-	
-	*nxt = ho->next_hdr;
-	
-	
-	
-	size = (ho->hdr_len+1)*8;
+	/*
+	 * Get current Layer 4 offset.
+	 */
 	off = odp_packet_l4_offset(pkt);
-	fastnet_ip6_ext_process(pkt,off+sizeof(ip_hopopts_t),size-sizeof(ip_hopopts_t))
 	
-	switch( netipv6_ext_options(netpkt_data(pkt)+2,size-2) ){
+	/*
+	 * Read the extension header.
+	 */
+	if(odp_unlikely(odp_packet_copy_to_mem(pkt,off,sizeof(ho),&ho))) return NETPP_DROP;
+	
+	/*
+	 * Get next-header field.
+	 */
+	*nxt = ho.next_hdr;
+	
+	/*
+	 * Calculate size.
+	 */
+	size = (ho.hdr_len+1)*8;
+	
+	switch( fastnet_ip6_ext_process(pkt,off+sizeof(ip_hopopts_t),off+size) ){
 	case I6OPT_DISCARD_UICMP: // XXX: send ICMP error
 	case I6OPT_DISCARD_ICMP: // XXX: send ICMP error
 	case I6OPT_DISCARD:
 		return NETPP_DROP;
 	}
-	odp_pack
+	odp_packet_l4_offset_set(pkt,off+size);
 	return NETPP_CONTINUE;
 }
 

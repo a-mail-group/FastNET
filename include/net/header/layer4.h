@@ -26,6 +26,7 @@
 #define IP_PROTOCOL_FRAG    0x2C /* IPv6 Fragment */
 #define IP_PROTOCOL_ESP     0x32 /* IPSec Encapsulated Payload */
 #define IP_PROTOCOL_AH      0x33 /* IPSec Authentication Header */
+#define IP_PROTOCOL_DSTOPTS 0x3C /* Destination Options. */
 #define IP_PROTOCOL_ICMP6   0x3A
 #define IP_PROTOCOL_INVALID 0xFF /* Reserved invalid by IANA */
 

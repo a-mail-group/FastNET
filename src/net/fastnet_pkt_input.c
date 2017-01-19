@@ -23,7 +23,7 @@
 #include <net/packet_input.h>
 #include <net/in_tlp.h>
 
-#if 0
+#if 1
 static void print_next_header(char ipv,int next_header){
 		const char* x = "?";
 		switch(next_header){
@@ -37,6 +37,7 @@ static void print_next_header(char ipv,int next_header){
 		case IP_PROTOCOL_FRAG   : x = "IP_PROTOCOL_FRAG (IPv6 Fragment)"; break;
 		case IP_PROTOCOL_ESP    : x = "IP_PROTOCOL_ESP (IPSec Encapsulated Payload)"; break;
 		case IP_PROTOCOL_AH     : x = "IP_PROTOCOL_AH (IPSec Authentication Header)"; break;
+		case IP_PROTOCOL_DSTOPTS: x = "IP_PROTOCOL_DSTOPTS (Destination Options)"; break;
 		case IP_PROTOCOL_ICMP6  : x = "IP_PROTOCOL_ICMP6"; break;
 		case IP_PROTOCOL_INVALID: x = "IP_PROTOCOL_INVALID (Reserved invalid by IANA)"; break;
 		}
@@ -123,10 +124,13 @@ netpp_retcode_t fastnet_ip6_input(odp_packet_t pkt){
 		ip6 = NULL;
 		odp_packet_l4_offset_set(pkt,odp_packet_l3_offset(pkt)+sizeof(fnet_ip6_header_t));
 		
+		NET_LOG("--------------------------\n");
 		ret = NETPP_CONTINUE;
+		print_next_header('6',next_header);
 		while(ret==NETPP_CONTINUE && next_header<IP_NO_PROTOCOL){
 			proto_idx = fn_in6_protocol_idx[next_header];
 			ret = fn_in_protocols[proto_idx].in6_hook(pkt,&next_header,proto_idx);
+			print_next_header('6',next_header);
 		}
 		return ret;
 	}

@@ -17,5 +17,5 @@
 #include <net/types.h>
 #include <odp_api.h>
 
-netpp_retcode_t fastnet_ip6x_hopopts(odp_packet_t pkt,int* nxt, int idx);
+netpp_retcode_t fastnet_ip6x_hop_dst_opts(odp_packet_t pkt,int* nxt, int idx);
 
