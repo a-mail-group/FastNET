@@ -24,6 +24,7 @@
 #include <net/header/layer4.h>
 #include <net/_config.h>
 #include <net/defaults.h>
+#include <net/safe_packet.h>
 
 typedef struct{
 	ipv4_addr_t src,dst;
@@ -62,7 +63,7 @@ static inline
 netpp_retcode_t get_ip_pair(ip_pair_t* pair,odp_packet_t pkt,struct ipv4_nif_struct* ipv4){
 	fnet_ip_header_t *ip;
 	
-	ip = odp_packet_l3_ptr(pkt,NULL);
+	ip = fastnet_safe_l3(pkt,sizeof(fnet_ip_header_t));
 	if(odp_unlikely(!ip)) return NETPP_DROP;
 	
 	/*
@@ -125,8 +126,7 @@ netpp_retcode_t fastnet_icmpv4_input(odp_packet_t pkt){
 	
 	if(odp_unlikely(ret != NETPP_CONTINUE)) return ret;
 	
-	hdr = odp_packet_l4_ptr(pkt,NULL);
-	
+	hdr = fastnet_safe_l4(pkt,sizeof(fnet_icmp_header_t));
 	if(odp_unlikely(!hdr)) return NETPP_DROP;
 	
 	pktoff = odp_packet_l4_offset(pkt);

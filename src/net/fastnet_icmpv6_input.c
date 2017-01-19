@@ -1,5 +1,7 @@
 /*
  *   Copyright 2017 Simon Schmidt
+ *   Copyright 2011-2016 by Andrey Butok. FNET Community.
+ *   Copyright 2008-2010 by Andrey Butok. Freescale Semiconductor, Inc.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -13,16 +15,20 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
-#pragma once
-#include <net/types.h>
+#include <net/packet_input.h>
+#include <net/packet_output.h>
+#include <net/header/icmp6.h>
+#include <net/header/ip6hdr.h>
+#include <net/checksum.h>
+#include <net/header/layer4.h>
+#include <net/_config.h>
+#include <net/defaults.h>
 
-netpp_retcode_t fastnet_ip_input(odp_packet_t pkt);
-netpp_retcode_t fastnet_tcp_input(odp_packet_t pkt);
-netpp_retcode_t fastnet_udp_input(odp_packet_t pkt);
-netpp_retcode_t fastnet_arp_input(odp_packet_t pkt);
-netpp_retcode_t fastnet_icmpv4_input(odp_packet_t pkt);
-netpp_retcode_t fastnet_icmpv6_input(odp_packet_t pkt);
-
-netpp_retcode_t fastnet_classified_input(odp_packet_t pkt);
-netpp_retcode_t fastnet_raw_input(odp_packet_t pkt);
-
+netpp_retcode_t fastnet_icmpv6_input(odp_packet_t pkt){
+	fnet_icmp6_header_t *hdr;
+	fnet_icmp6_err_header_t *icmp6_err;
+	
+	
+	
+	return NETPP_DROP;
+}
