@@ -77,3 +77,5 @@
 #define IP6_ADDR_IS_LINKLOCAL(a)	\
     ((((a).addr[0]) == 0xfeU) && ((((a).addr[1]) & 0xc0U) == 0x80U))
 
+#define IP6_ADDR_IS_SITELOCAL(a)	\
+    ((((a).addr[0]) == 0xfeU) && ((((a).addr[1]) & 0xc0U) == 0xc0U))

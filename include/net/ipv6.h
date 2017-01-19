@@ -72,3 +72,6 @@ struct ipv6_nif_struct{
 int fastnet_ipv6_deactivated(struct ipv6_nif_struct *ipv6);
 int fastnet_ipv6_addr_is_self(struct ipv6_nif_struct *ipv6, ipv6_addr_t *addr);
 int fastnet_ipv6_addr_is_own_ip6_solicited_multicast(struct ipv6_nif_struct *ipv6, ipv6_addr_t *addr);
+
+/* Select the best source-IP for the destination-IP (see RFC3484 .5: Source Address Selection) */
+int fastnet_ipv6_addr_select(struct ipv6_nif_struct *ipv6, ipv6_addr_t *src, ipv6_addr_t *dest);

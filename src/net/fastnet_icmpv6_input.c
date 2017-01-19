@@ -20,6 +20,7 @@
 #include <net/header/icmp6.h>
 #include <net/header/ip6hdr.h>
 #include <net/header/ip6defs.h>
+#include <net/ipv6.h>
 #include <net/checksum.h>
 #include <net/header/layer4.h>
 #include <net/_config.h>
@@ -165,7 +166,9 @@ netpp_retcode_t fastnet_icmpv6_input(odp_packet_t pkt){
 		 * address belonging to the interface on which
 		 * the Echo Request message was received.
 		 */
-		if(IP6_ADDR_IS_MULTICAST(pair.dst)) return NETPP_DROP; /* TODO: find corresponding dest_ip to src_ip */
+		if(IP6_ADDR_IS_MULTICAST(pair.dst)){
+			if(odp_unlikely(!fastnet_ipv6_addr_select(ipv6,&pair.dst,&pair.src))) return NETPP_DROP;
+		}
 		
 		hdr->type = FNET_ICMP6_TYPE_ECHO_REPLY;
 		hdr->checksum = 0;
