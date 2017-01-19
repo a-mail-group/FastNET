@@ -69,16 +69,38 @@ netpp_retcode_t fastnet_ip_input(odp_packet_t pkt){
 	if(is_ours){
 		offset = odp_packet_l3_offset(pkt);
 		hdrlen = FNET_IP_HEADER_GET_HEADER_LENGTH(ip)*4;
-		if(odp_unlikely(hdrlen<sizeof(fnet_ip_header_t))) return NETPP_DROP;
 		
+		/*
+		 * Check the IP header length for invalid values.
+		 */
+		if(odp_unlikely( hdrlen < sizeof(fnet_ip_header_t) )) return NETPP_DROP;
+		
+		/*
+		 * Calculate/set the layer 4 offset.
+		 */
 		odp_packet_l4_offset_set(pkt,offset+hdrlen);
+		
+		/*
+		 * Get the protocol field.
+		 */
+		next_header = ip->protocol;
+		
+		/*
+		 * The IP packet length could actually differ from the length
+		 * specified in the IP header, so we retrieve the TotalLength-field
+		 * of the IP header and compare it to the packet length.
+		 *
+		 * IF the packet (beginning at the layer-3 header) is bigger than the
+		 * TotalLenth-field, THEN we truncate the packet to this size.
+		 *
+		 * IF the packet (beginning at the layer-3 header) is smaller than the
+		 * TotalLenth-field, THEN we drop the packet.
+		 */
 		havelen   = odp_packet_len(pkt)-offset;
 		shouldlen = odp_be_to_cpu_16(ip->total_length);
 		
 		if(odp_unlikely(havelen>shouldlen)) odp_packet_pull_tail(pkt,havelen-shouldlen);
 		else if(odp_unlikely(havelen<shouldlen)) return NETPP_DROP;
-		
-		next_header = ip->protocol;
 		
 		ip = NULL;
 		fastnet_ip_reass(&pkt);
@@ -133,13 +155,31 @@ netpp_retcode_t fastnet_ip6_input(odp_packet_t pkt){
 	if(is_ours){
 		next_header = ip6->next_header;
 		
+		/*
+		 * Obtain the PayloadLength-field.
+		 */
 		shouldlen = odp_be_to_cpu_16(ip6->length);
 		
 		ip6 = NULL;
+		
+		/*
+		 * Calculate/set the layer 4 offset.
+		 */
 		offset = odp_packet_l3_offset(pkt)+sizeof(fnet_ip6_header_t);
 		odp_packet_l4_offset_set(pkt,offset);
+		
+		/*
+		 * Obtain the actual payload-length
+		 */
 		havelen = odp_packet_len(pkt)-offset;
 		
+		/*
+		 * IF the packet (beginning at the layer-4 header) is bigger than the
+		 * PayloadLength-field, THEN we truncate the packet to this size.
+		 *
+		 * IF the packet (beginning at the layer-4 header) is smaller than the
+		 * PayloadLength-field, THEN we drop the packet.
+		 */
 		if(odp_unlikely(havelen>shouldlen)) odp_packet_pull_tail(pkt,havelen-shouldlen);
 		else if(odp_unlikely(havelen<shouldlen)) return NETPP_DROP;
 		
