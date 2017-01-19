@@ -39,7 +39,7 @@ void* fastnet_safe_l2(odp_packet_t pkt,uint32_t req){
 static inline
 void* fastnet_safe_l3(odp_packet_t pkt,uint32_t req){
 	uint32_t size;
-	void* ret = odp_packet_l2_ptr(pkt,&size);
+	void* ret = odp_packet_l3_ptr(pkt,&size);
 	return  odp_unlikely(size<req) ? 0 : ret;
 }
 
@@ -47,7 +47,7 @@ void* fastnet_safe_l3(odp_packet_t pkt,uint32_t req){
 static inline
 void* fastnet_safe_l4(odp_packet_t pkt,uint32_t req){
 	uint32_t size;
-	void* ret = odp_packet_l2_ptr(pkt,&size);
+	void* ret = odp_packet_l4_ptr(pkt,&size);
 	return  odp_unlikely(size<req) ? 0 : ret;
 }
 
