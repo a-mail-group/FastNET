@@ -136,7 +136,7 @@ netpp_retcode_t ipv4_add_eth(odp_packet_t pkt,struct ip_local_info* __restrict__
 	int hasifip;
 	int sendarp;
 	uint64_t src,dst;
-	ipv4_addr_t dst_ip = odata->ip->desination_addr;
+	ipv4_addr_t dst_ip = odata->nh->ip_gateway;
 	ipv4_addr_t ifip;
 	
 	
