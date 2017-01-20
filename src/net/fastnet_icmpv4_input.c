@@ -21,6 +21,7 @@
 #include <net/header/icmp.h>
 #include <net/header/iphdr.h>
 #include <net/checksum.h>
+#include <net/ipv4.h>
 #include <net/header/layer4.h>
 #include <net/_config.h>
 #include <net/defaults.h>
