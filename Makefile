@@ -26,6 +26,7 @@ net += src/net/fastnet_icmpv4_input.o
 net += src/net/fastnet_icmpv6_input.o
 
 net += src/net/fastnet_ipv4_output.o
+net += src/net/fastnet_ipv6_output.o
 net += src/net/fastnet_tcp_output.o
 net += src/net/fastnet_udp_output.o
 net += src/net/fastnet_pkt_output.o

@@ -15,13 +15,14 @@
  */
 #pragma once
 
-#include <odp_api.h>
 #include <net/types.h>
 #include <net/nif.h>
 #include <net/header/ip6.h>
 
-void fastnet_initialize_ip6mac_cache();
+typedef struct {
+	ipv6_addr_t ip6_gateway;
+	nif_t*      nif;
+} ip6_next_hop_t;
 
-netpp_retcode_t fastnet_ipv6_mac_lookup(nif_t* nif,ipv6_addr_t ipaddr,uint64_t* hwaddr,int *sendnd6,odp_packet_t pkt);
-odp_packet_t    fastnet_ipv6_mac_put(nif_t* nif,ipv6_addr_t ipaddr,uint64_t hwaddr,int create);
+netpp_retcode_t fastnet_ip6_output(odp_packet_t pkt,ip6_next_hop_t* nh);
 

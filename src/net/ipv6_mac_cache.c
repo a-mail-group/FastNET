@@ -288,7 +288,7 @@ terminate:
 	return ret;
 }
 
-netpp_retcode_t fastnet_ipv6_mac_lookup(nif_t* nif,ipv6_addr_t ipaddr,uint64_t* hwaddr,int *sendarp,odp_packet_t pkt){
+netpp_retcode_t fastnet_ipv6_mac_lookup(nif_t* nif,ipv6_addr_t ipaddr,uint64_t* hwaddr,int *sendnd6,odp_packet_t pkt){
 	int ret;
 	ipv6_mac_entry_t key;
 	odp_time_t cur;
@@ -296,13 +296,13 @@ netpp_retcode_t fastnet_ipv6_mac_lookup(nif_t* nif,ipv6_addr_t ipaddr,uint64_t* 
 	cur = key.tstamp;
 	
 	ret = ipmac_lkup_or_insert(&key,pkt,1);
-	*sendarp = 1;
+	*sendnd6 = 1;
 	
 	switch(ret){
 	case -1: return NETPP_DROP;
 	case 0:  return NETPP_CONSUMED;
 	case 2:
-		*sendarp = ip_entry_timeout_soft(odp_time_diff(cur,key.tstamp));
+		*sendnd6 = ip_entry_timeout_soft(odp_time_diff(cur,key.tstamp));
 		if(hwaddr) *hwaddr = key.hwaddr;
 		return NETPP_CONTINUE;
 	default:return NETPP_DROP;
