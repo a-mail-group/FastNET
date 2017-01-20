@@ -21,6 +21,8 @@
 #include <net/header/ip6defs.h>
 #include <net/header/layer4.h>
 #include <net/packet_input.h>
+#include <net/ipv4.h>
+#include <net/ipv6.h>
 #include <net/in_tlp.h>
 #include <net/safe_packet.h>
 
