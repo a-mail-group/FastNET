@@ -49,6 +49,15 @@ uint32_t fastnet_nd6_retrans_timer;  /* Default  1,000 milliseconds */
  *                verify reachability.
  *
  */
+enum {
+	STATE_INCOMPLETE,
+	STATE_REACHABLE,
+	STATE_STALE,
+	STATE_DELAY,
+	STATE_PROBE,
+};
+
+
 
 /* Must be power of 2 */
 
@@ -77,10 +86,16 @@ enum {
 	 * This flag indicates, that there is no Hardware-Address - this implies INCOMPLETE.
 	 * This flag also indicates, that there may be a chain of unsendt packets.
 	 */
-	FLAGS_HAS_CHAIN = 1, /* Implies INCOMPLETE. */
-	FLAGS_HAS_STALE = 2, /* True for { STALE, DELAY, PROBE } */
-	FLAGS_HAS_DELAY = 4, /* True for DELAY, optional for PROBE */
-	FLAGS_HAS_PROBE = 8, /* True for PROBE */
+	FLAGS_HAS_CHAIN = 1,    /* Implies INCOMPLETE. */
+	FLAGS_HAS_STALE = 2,    /* True for { STALE, DELAY, PROBE } */
+	FLAGS_HAS_DELAY = 4,    /* True for DELAY, optional for PROBE */
+	FLAGS_HAS_PROBE = 8,    /* True for PROBE */
+	FLAGS_IS_ROUTER = 0x10, /* IsRouter */
+	
+	FLAGS_IS_OVERRIDE = 0x100, /* For the Key: Override-flag has been set. */
+	
+	FLAGS_TYPE_NSOL = 0x1000, /* Set on key on Neighbor Solicitations. */
+	FLAGS_TYPE_NADV = 0x2000, /* Set on key on Neighbor Advertisements. */
 };
 
 /*
@@ -138,18 +153,154 @@ static int ip_entry_timeout_soft(odp_time_t diff){
 	return 0;
 }
 
+static int ip_entry_get_state(ipv6_mac_entry_t* entry,odp_time_t now){
+	uint32_t flags = entry->flags;
+	odp_time_t diff;
+	
+	if(flags & FLAGS_HAS_CHAIN) return STATE_INCOMPLETE;
+	if(!(flags & FLAGS_HAS_STALE)){
+		diff = odp_time_diff(now,entry->tstamp);
+		if(diff.tv_sec > fastnet_nd6_reachable_time) return STATE_STALE;
+		return STATE_REACHABLE;
+	}
+	if(flags & FLAGS_HAS_PROBE) return STATE_PROBE;
+	if(flags & FLAGS_HAS_DELAY) return STATE_DELAY;
+	return STATE_STALE;
+}
+
 /*
  * Preconditions:
  *   if  key->flags & FLAGS_HAS_CHAIN   -> key->chain == ODP_PACKET_INVALID
  * Postconditions:
- *   RESULT must be one of {  0 ,  1 ,  2  }
+ *   RESULT must be one of { 0 ,  1 ,  2 , 3 }
  *   if  RESULT == 0  ->  entry->flags & FLAGS_HAS_CHAIN
  *   if  RESULT == 1  ->  Entry Updated
  *   if  RESULT == 2  ->  Key Updated; !(key->flags & FLAGS_HAS_CHAIN)
+ *   if  RESULT == 3  ->  !( entry->flags & FLAGS_HAS_CHAIN )
  */
 static int ip_entry_overwrite(ipv6_mac_entry_t* entry,ipv6_mac_entry_t* key) {
 	uint32_t     flags;
 	odp_packet_t chain;
+	
+	/*
+	 * FLAGS_TYPE_NSOL is set in the key on every Neighbor Solicitation.
+	 */
+	if(key->flags & FLAGS_TYPE_NSOL){
+		/*
+		 * RFC-4861 7.2.3.  Receipt of Neighbor Solicitations
+		 *
+		 * If the Source Address is not the unspecified
+		 * address and, on link layers that have addresses, the solicitation
+		 * includes a Source Link-Layer Address option, then the recipient
+		 * SHOULD create or update the Neighbor Cache entry for the IP Source
+		 * Address of the solicitation.
+		 *
+		 *
+		 * If an entry does not already exist, the
+		 * node SHOULD create a new one and set its reachability state to STALE
+		 * as specified in Section 7.3.3.
+		 *
+		 * If an entry already exists, and the
+		 * cached link-layer address differs from the one in the received Source
+		 * Link-Layer option, the cached address should be replaced by the
+		 * received address, and the entry's reachability state MUST be set to
+		 * STALE.
+		 *
+		 * If a Neighbor Cache entry already exists, its IsRouter flag MUST NOT
+		 * be modified.
+		 */
+		if(entry->flags & FLAGS_HAS_CHAIN){
+			flags = FLAGS_IS_ROUTER & entry->flags;
+			chain = entry->chain;
+			entry->hwaddr = key->hwaddr;
+			entry->flags  = key->flags | flags;
+			entry->tstamp = key->tstamp;
+			key->chain = chain;
+			key->flags |= FLAGS_HAS_CHAIN;
+			return 1;
+		}else if(entry->hwaddr != key->hwaddr){
+			flags = FLAGS_IS_ROUTER & entry->flags;
+			entry->hwaddr = key->hwaddr;
+			entry->flags  = key->flags | flags;
+			entry->tstamp = key->tstamp;
+			return 1;
+		}
+		return 3;
+	}
+	
+	/*
+	 * FLAGS_TYPE_NADV is set in the key on every Neighbor Advertisement.
+	 */
+	if(key->flags & FLAGS_TYPE_NADV){
+		/* 7.2.5.  Receipt of Neighbor Advertisements */
+		
+		/* If the entry is in the state INCOMPLETE... */
+		if(entry->flags & FLAGS_HAS_CHAIN){
+			chain = entry->chain;
+			entry->hwaddr = key->hwaddr;
+			entry->flags  = key->flags;
+			entry->tstamp = key->tstamp;
+			key->chain = chain;
+			key->flags |= FLAGS_HAS_CHAIN;
+			return 1;
+		}
+		/*
+		 * If the target's Neighbor Cache entry is in any state other than
+		 * INCOMPLETE when the advertisement is received, the following actions
+		 * take place:
+		 */
+		
+		/*
+		 * I.
+		 *   If the Override flag is clear and the supplied link-layer address
+		 *   differs from that in the cache, then one of two actions takes
+		 *   place:
+		 */
+		if(!(key->flags & FLAGS_IS_OVERRIDE)){
+			if(entry->hwaddr == key->hwaddr) return 3;
+			/*
+			 * a. If the state of the entry is REACHABLE, set it to STALE, but
+			 *    do not update the entry in any other way.
+			 */
+			if(ip_entry_get_state(entry,key->tstamp)==STATE_REACHABLE){
+				entry->flags |= FLAGS_HAS_STALE;
+			}
+			/*
+			 * b. Otherwise, the received advertisement should be ignored and
+			 *    MUST NOT update the cache.
+			 */
+			return 1;
+		}
+		
+		/*
+		 * II.
+		 *   If the Override flag is set, or the supplied link-layer address
+		 *   is the same as that in the cache, or no Target Link-Layer Address
+		 *   option was supplied, the received advertisement MUST update the
+		 *   Neighbor Cache entry as follows:
+		 */
+		
+		if( entry->hwaddr != key->hwaddr ){
+			/*
+			 * - The link-layer address in the Target Link-Layer Address option
+			 *   MUST be inserted in the cache (if one is supplied and differs
+			 *   from the already recorded address).
+			 * - If the Solicited flag is set, the state of the entry MUST be
+			 *   set to REACHABLE.  If the Solicited flag is zero and the link-
+			 *   layer address was updated with a different address, the state
+			 *   MUST be set to STALE.  Otherwise, the entry's state remains
+			 *   unchanged.
+			 * - The IsRouter flag in the cache entry MUST be set based on the
+			 *   Router flag in the received advertisement.
+			 */
+			entry->hwaddr = key->hwaddr;
+			entry->flags  = key->flags;
+			entry->tstamp = key->tstamp;
+		};
+		entry->tstamp = entry->tstamp;
+	}
+	
+	
 	if(key->flags & FLAGS_HAS_CHAIN){
 		if(!(entry->flags & FLAGS_HAS_CHAIN)){
 			key->hwaddr = entry->hwaddr;
@@ -217,6 +368,7 @@ static void free_chain(odp_buffer_t buf){
  *  0 -> packet consumed, if any.
  *  1 -> entry inserted or updated (or just found).
  *  2 -> key updated.
+ *  3 -> no effect.
  */
 static int
 ipmac_lkup_or_insert(ipv6_mac_entry_t* key,odp_packet_t pkt,int create){
@@ -319,6 +471,46 @@ odp_packet_t    fastnet_ipv6_mac_put(nif_t* nif,ipv6_addr_t ipaddr,uint64_t hwad
 	key.hwaddr = hwaddr;
 	
 	if( ipmac_lkup_or_insert(&key,ODP_PACKET_INVALID,create) == 2 ){
+		if(key.flags & FLAGS_HAS_CHAIN) return key.chain;
+	}
+	
+	return ODP_PACKET_INVALID;
+}
+
+odp_packet_t    fastnet_ipv6_mac_nsol(nif_t* nif,ipv6_addr_t ipaddr,uint64_t hwaddr){
+	ipv6_mac_entry_t key;
+	ip_entry(nif,ipaddr,&key);
+	key.flags = FLAGS_HAS_STALE | FLAGS_TYPE_NSOL;
+	key.hwaddr = hwaddr;
+	
+	if( ipmac_lkup_or_insert(&key,ODP_PACKET_INVALID,1) == 2 ){
+		if(key.flags & FLAGS_HAS_CHAIN) return key.chain;
+	}
+	
+	return ODP_PACKET_INVALID;
+}
+
+odp_packet_t    fastnet_ipv6_mac_nadv(nif_t* nif,ipv6_addr_t ipaddr,uint64_t hwaddr,int flags){
+	ipv6_mac_entry_t key;
+	ip_entry(nif,ipaddr,&key);
+	key.flags = FLAGS_TYPE_NADV;
+	key.hwaddr = hwaddr;
+	
+	/*
+	 * - If the advertisement's Solicited flag is set, the state of the
+	 *   entry is set to REACHABLE; otherwise, it is set to STALE.
+	 */
+	if(!(flags & I6MC_NADV_SOLICITED)) key.flags |= FLAGS_HAS_STALE;
+	
+	/*
+	 * - It sets the IsRouter flag in the cache entry based on the Router
+	 *   flag in the received advertisement.
+	 */
+	if(flags & I6MC_NADV_ROUTER)   key.flags |= FLAGS_IS_ROUTER;
+	
+	if(flags & I6MC_NADV_OVERRIDE) key.flags |= FLAGS_IS_OVERRIDE;
+	
+	if( ipmac_lkup_or_insert(&key,ODP_PACKET_INVALID,0) == 2 ){
 		if(key.flags & FLAGS_HAS_CHAIN) return key.chain;
 	}
 	

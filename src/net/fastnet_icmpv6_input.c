@@ -24,11 +24,13 @@
 #include <net/checksum.h>
 #include <net/header/layer4.h>
 #include <net/_config.h>
+#include <net/nd6.h>
 #include <net/defaults.h>
 #include <net/safe_packet.h>
 
 typedef struct{
 	ipv6_addr_t src,dst;
+	uint8_t     hop_limit;
 } ip6_pair_t;
 
 /* XXX: put this elsewhere.*/
@@ -65,6 +67,7 @@ netpp_retcode_t get_ip6_pair(ip6_pair_t* pair,odp_packet_t pkt,struct ipv6_nif_s
 	
 	pair->src = ip6->source_addr;
 	pair->dst = ip6->destination_addr;
+	pair->hop_limit = ip6->hop_limit;
 	
 	return NETPP_CONTINUE;
 }
@@ -97,6 +100,9 @@ void add_response_header(ip6_pair_t* pair,odp_packet_t pkt,uint32_t pktlen,uint3
 	ip->destination_addr        = pair->src;
 }
 
+static const ipv6_addr_t  ipv6_any = IP6_ADDR_ANY_INIT;
+
+
 netpp_retcode_t fastnet_icmpv6_input(odp_packet_t pkt){
 	fnet_prot_notify_t       prot_cmd;
 	ip6_pair_t               pair;
@@ -105,6 +111,8 @@ netpp_retcode_t fastnet_icmpv6_input(odp_packet_t pkt){
 	nif_t*                   nif;
 	fnet_icmp6_header_t*     hdr;
 	uint32_t                 pktlen,pktoff;
+	int                      source_is_unspecified;
+	int                      is_dest_multicast;
 	
 	ipv6 = getIpv6(pkt,&nif);
 	
@@ -123,19 +131,44 @@ netpp_retcode_t fastnet_icmpv6_input(odp_packet_t pkt){
 	 */
 	if(odp_unlikely( fastnet_ip6_checksum(pkt,pair.src,pair.dst,IP_PROTOCOL_ICMP6) != 0 )) return NETPP_DROP;
 	
-	
 	switch (hdr->type){
 	/**************************
 	 * Neighbor Solicitation.
 	 **************************/
 	case FNET_ICMP6_TYPE_NEIGHBOR_SOLICITATION:
-		//netnd6_neighbor_solicitation_receive(nif,pkt,&src_ip,&dest_ip);
+		/*
+		 * RFC-4861 7.1.1.  Validation of Neighbor Solicitations
+		 *  - The IP Hop Limit field has a value of 255, i.e., the packet
+		 *    could not possibly have been forwarded by a router.
+		 *  - ICMP Checksum is valid.
+		 *  - If the IP source address is the unspecified address, the IP
+		 *    destination address is a solicited-node multicast address.
+		 */
+		if(odp_unlikely(pair.hop_limit != 255)) return NETPP_DROP;
+		
+		if(IP6ADDR_EQ(ipv6_any,pair.src)){
+			if(odp_unlikely(!fastnet_ipv6_addr_is_own_ip6_solicited_multicast(ipv6,&pair.dst))) return NETPP_DROP;
+			source_is_unspecified = 1;
+		}else{
+			source_is_unspecified = 0;
+		}
+		return fastnet_nd6_nsol_input(pkt,source_is_unspecified);
 		break;
 	/**************************
 	 * Neighbor Advertisemnt.
 	 **************************/
 	case FNET_ICMP6_TYPE_NEIGHBOR_ADVERTISEMENT:
-		//netnd6_neighbor_advertisement_receive(nif,pkt,&src_ip,&dest_ip);
+		/*
+		 * RFC-4861 7.1.2.  Validation of Neighbor Advertisements
+		 *  - The IP Hop Limit field has a value of 255, i.e., the packet
+		 *    could not possibly have been forwarded by a router.
+		 *  - ICMP Checksum is valid.
+		 */
+		if(odp_unlikely(pair.hop_limit != 255)) return NETPP_DROP;
+		
+		is_dest_multicast = IP6_ADDR_IS_MULTICAST(pair.dst) ?1:0;
+		
+		return fastnet_nd6_nadv_input(pkt,is_dest_multicast);
 		break;
 	/**************************
 	 * Router Advertisemnt.

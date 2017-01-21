@@ -25,3 +25,10 @@ void fastnet_initialize_ip6mac_cache();
 netpp_retcode_t fastnet_ipv6_mac_lookup(nif_t* nif,ipv6_addr_t ipaddr,uint64_t* hwaddr,int *sendnd6,odp_packet_t pkt);
 odp_packet_t    fastnet_ipv6_mac_put(nif_t* nif,ipv6_addr_t ipaddr,uint64_t hwaddr,int create);
 
+odp_packet_t    fastnet_ipv6_mac_nsol(nif_t* nif,ipv6_addr_t ipaddr,uint64_t hwaddr);
+odp_packet_t    fastnet_ipv6_mac_nadv(nif_t* nif,ipv6_addr_t ipaddr,uint64_t hwaddr,int flags);
+
+#define I6MC_NADV_ROUTER    1 /* Router flag. */
+#define I6MC_NADV_SOLICITED 2 /* Solicited flag. */
+#define I6MC_NADV_OVERRIDE  4 /* Override flag. */
+

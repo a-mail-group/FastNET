@@ -37,6 +37,19 @@ static
 netpp_retcode_t ipv6_find_route(struct ip6_local_info* __restrict__  odata){
 	ipv6_addr_t dst = odata->ip6->destination_addr;
 	ipv6_addr_t src = odata->ip6->source_addr;
+	
+	/*
+	 * TODO:
+	 * RFC4861 7.2.  Address Resolution
+	 * Address resolution is performed only on addresses that are determined
+	 * to be on-link and for which the sender does not know the corresponding
+	 * link-layer address (see Section 5.2).
+	 *
+	 * NOTE: If the Address is not on-link, 
+	 */
+	
+	/* TODO: Possible redirection. */
+	
 	if(odata->nh == NULL){
 		/*
 		 * Link-local IPv6 addresses do not use gateways.
@@ -59,26 +72,14 @@ nh_done:
 	
 	odata->outnif = odata->nh->nif;
 	
-	/* Null-pointer check. */
+	/*
+	 * Null-pointer check.
+	 */
 	if(odp_unlikely(odata->outnif == NULL)){
 		NET_LOG("!odata->outnif\n");
 		return NETPP_DROP;
 	}
-	#if 0
-	/*
-	 * If the Upper layer has not filled out
-	 * the source IP, we have to do it.
-	 */
-	if (odata->ip->destination_addr == 0) {
-		/* Null-pointer check. */
-		if(odp_unlikely(odata->outnif->ipv4 == NULL)) {
-			NET_LOG("!odata->outnif->ipv4\n");
-			return NETPP_DROP;
-		}
-		
-		odata->ip->destination_addr = odata->outnif->ipv4->address;
-	}
-	#endif
+	
 	return NETPP_CONTINUE;
 }
 
@@ -137,29 +138,36 @@ netpp_retcode_t ipv6_add_eth(odp_packet_t pkt,struct ip6_local_info* __restrict_
 	uint64_t src,dst;
 	ipv6_addr_t dst_ip = odata->nh->ip6_gateway;
 	//ipv6_addr_t ifip;
+	// TODO: loopback support.
+	
 	
 	ethsize = sizeof(fnet_eth_header_t);
 	ipoff = odp_packet_l3_offset(pkt);
 	
 	src = odata->outnif->hwaddr;
+	
+	/*
+	 * RFC4861 7.2. Address Resolution:
+	 *   Address resolution is never performed on multicast addresses.
+	 *
+	 * If destination Address is a multicast, derive Multicast-MAC from it.
+	 */
 	if(IP6_ADDR_IS_MULTICAST(dst_ip)){
 		dst = ipv6_multicast(dst_ip);
 	}else{
-		/* Possible redirection. */
+		/* TODO: Only on-Link addresses may be looked up.*/
 		
-		/* Check Neigbor cache.*/
-		
+		/*
+		 * Check Neigbor cache.
+		 */
 		res = fastnet_ipv6_mac_lookup(odata->outnif,dst_ip,&dst,&sendnd6,pkt);
 		
-		#if 0
 		if(sendnd6){
 			/*
 			 * Send an ND6 packet out the network interface.
-			 * XXX test return value.
 			 */
-			fastnet_arp_output(ifip,dst_ip,odata->outnif);
+			//fastnet_arp_output(ifip,dst_ip,odata->outnif);
 		}
-		#endif
 		if(res!=NETPP_CONTINUE) return res;
 	}
 	
