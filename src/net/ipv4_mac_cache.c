@@ -14,7 +14,8 @@
  *   limitations under the License.
  */
 #include <net/ipv4_mac_cache.h>
-#include <stdlib.h>
+#include <net/fnv1a.h>
+#include <net/std_lib.h>
 #include <net/requirement.h>
 #include <net/variables.h>
 
@@ -62,8 +63,8 @@ static odp_shm_t  hashtab;
 static
 uint32_t ip_hash(nif_t* nif,ipv4_addr_t ipaddr){
 	uint32_t hash = fastnet_fnv1a_init();
-	hash = fastnet_fnv1a(hash,&nif,sizeof(nif));
-	hash = fastnet_fnv1a(hash,&ipaddr,sizeof(ipaddr));
+	hash = fastnet_fnv1a(hash,(uint8_t*)&nif,sizeof(nif));
+	hash = fastnet_fnv1a(hash,(uint8_t*)&ipaddr,sizeof(ipaddr));
 	return hash;
 }
 
@@ -132,9 +133,9 @@ void fastnet_initialize_ipmac_cache(){
 	epool.buf.size  = sizeof(ipv4_mac_entry_t);
 	epool.buf.align = 8;
 	entries = odp_pool_create("ipv4_mac_entries",&epool);
-	if(entries==ODP_POOL_INVALID) abort();
+	if(entries==ODP_POOL_INVALID) fastnet_abort();
 	hashtab = odp_shm_reserve("ipv4_mac_hashtab",sizeof(i4m_ht_t),8,0);
-	if(hashtab==ODP_SHM_INVALID) abort();
+	if(hashtab==ODP_SHM_INVALID) fastnet_abort();
 	i4m_ht_t* h = odp_shm_addr(hashtab);
 	for(i=0;i<HASHTAB_SZ;++i)
 		h->entries[i] = ODP_BUFFER_INVALID;

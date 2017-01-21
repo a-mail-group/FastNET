@@ -26,6 +26,7 @@
 #include <net/_config.h>
 #include <net/defaults.h>
 #include <net/safe_packet.h>
+#include <net/ip_next_hop.h>
 
 typedef struct{
 	ipv4_addr_t src,dst;

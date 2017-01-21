@@ -24,6 +24,7 @@
 #include <net/ipv4.h>
 #include <net/ipv6.h>
 #include <net/in_tlp.h>
+#include <net/checksum.h>
 #include <net/safe_packet.h>
 
 #if 0

@@ -19,6 +19,7 @@
 #include <net/in_tlp.h>
 #include <net/niftable.h>
 #include <net/ipv4.h>
+#include <net/ipv4_mac_cache.h>
 #include <net/ipv6.h>
 #include <net/packet_input.h>
 #include <net/header/ip.h>
