@@ -42,7 +42,7 @@ static const ip6_pte_t ip6_pte[] =
 };
 static const unsigned int ip6_pte_n = (sizeof(ip6_pte)/sizeof(ip6_pte_t));
 
-static const uint8_t bit_mask[] = { 0x00, 0x80,0xC0,0xE0,0xF0, 0xF8,0xFC,0xFE,0xFF, };
+static const uint8_t bit_mask[] = { 0x80,0xC0,0xE0,0xF0, 0xF8,0xFC,0xFE,0xFF, };
 
 static const ipv6_addr_t ip6_addr_loopback = IP6_ADDR_LOOPBACK_INIT;
 
@@ -111,7 +111,7 @@ int fastnet_ipv6_common_prefix(const ipv6_addr_t *addr1,const ipv6_addr_t *addr2
 	
 	xb = addr1->addr[i] ^ addr2->addr[i];
 	
-	for(j=0;j<=8;++j) if(bit_mask[j]&xb) break;
+	for(j=0;j<8;++j) if(bit_mask[j]&xb) break;
 	
 	return (uint32_t)( (i*8) + j);
 }
