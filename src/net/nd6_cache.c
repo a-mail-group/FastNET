@@ -199,11 +199,11 @@ void fastnet_nd6_nce_ht_enter(nd6_nce_handle_t handle){
 	
 	ci = odp_shm_addr(hashtab);
 	
-	odp_atomic_inc_u32(&(ptr->refc));
-	
 	odp_spinlock_lock(&(ci->neighbor.bucket_locks[lockno]));
 	
 	if(odp_unlikely(ptr->in_hashtab)) goto terminate;
+	
+	odp_atomic_inc_u32(&(ptr->refc));
 	
 	ptr->next_hashtab = ci->neighbor.buckets[hashno];
 	ci->neighbor.buckets[hashno] = ptr->next_hashtab;
@@ -296,6 +296,8 @@ void fastnet_nd6_nce_rl_enter(nd6_nce_handle_t handle){
 	odp_spinlock_lock(&(ci->router.list_lock));
 	
 	if(odp_unlikely(ptr->in_hashtab)) goto terminate;
+	
+	odp_atomic_inc_u32(&(ptr->refc));
 	
 	ptr->next_router = ci->router.first_router;
 	ci->router.first_router = ptr->next_router;
