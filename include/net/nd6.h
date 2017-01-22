@@ -15,13 +15,14 @@
  */
 #pragma once
 #include <net/types.h>
+#include <net/header/ip6.h>
 
 netpp_retcode_t fastnet_nd6_nsol_input(odp_packet_t pkt,int source_is_unspecified);
 netpp_retcode_t fastnet_nd6_nadv_input(odp_packet_t pkt,int is_dest_multicast);
 
-#if 0
+netpp_retcode_t fastnet_nd6_radv_input(odp_packet_t pkt,ipv6_addr_t* ipaddr_p);
 
+#if 0
 netpp_retcode_t fastnet_nd6_rsol_input(odp_packet_t pkt);
-netpp_retcode_t fastnet_nd6_radv_input(odp_packet_t pkt);
 #endif
 

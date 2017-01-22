@@ -19,7 +19,9 @@
 #include <net/header/ip6defs.h>
 #include <net/header/ethhdr.h>
 #include <net/packet_output.h>
-#include <net/ipv6_mac_cache.h>
+
+#include <net/nd6_cache.h>
+
 #include <net/requirement.h>
 #include <net/std_defs.h>
 #include <net/_config.h>
@@ -130,7 +132,10 @@ static void ipv6_setmacaddrs(fnet_eth_header_t* __restrict__ ethp, uint64_t src,
 
 
 netpp_retcode_t ipv6_add_eth(odp_packet_t pkt,struct ip6_local_info* __restrict__  odata){
-	netpp_retcode_t res;
+	netpp_retcode_t  res;
+	nd6_nce_handle_t neighbor,alt;
+	nd6_nce_t*       neighptr;
+	odp_time_t       now;
 	uint32_t ethsize,ipoff;
 	void* ethp;
 	//int hasifip;
@@ -157,10 +162,74 @@ netpp_retcode_t ipv6_add_eth(odp_packet_t pkt,struct ip6_local_info* __restrict_
 	}else{
 		/* TODO: Only on-Link addresses may be looked up.*/
 		
+		now = odp_time_global();
+		
 		/*
 		 * Check Neigbor cache.
 		 */
-		res = fastnet_ipv6_mac_lookup(odata->outnif,dst_ip,&dst,&sendnd6,pkt);
+		
+		neighbor = fastnet_nd6_nce_find(odata->outnif,dst_ip);
+		
+		if(neighbor == ODP_BUFFER_INVALID){
+			neighbor = fastnet_nd6_nce_alloc();
+			
+			if(odp_unlikely( neighbor==ODP_BUFFER_INVALID ) ) return NETPP_DROP;
+			
+			neighptr = odp_buffer_addr(neighbor);
+			
+			neighptr->nif          = odata->outnif;
+			neighptr->ipaddr       = dst_ip;
+			neighptr->state        = ND6_NC_INCOMPLETE;
+			neighptr->state_tstamp = now;
+			neighptr->is_router    = 0;
+			
+			/*
+			 * Generate the Key-Hash of this entry.
+			 */
+			fastnet_nd6_nce_hashit(neighbor);
+			
+			fastnet_nd6_nce_lock(neighbor);
+			/*
+			 * Check, if another key had been inserted.
+			 */
+			alt = fastnet_nd6_nce_find(odata->outnif,dst_ip);
+			if(odp_likely(alt == ODP_BUFFER_INVALID)){
+				fastnet_nd6_nce_ht_enter(neighbor);
+			}else{
+				fastnet_nd6_nce_put(neighbor);
+				neighbor = alt;
+			}
+		}else{
+			fastnet_nd6_nce_lock(neighbor);
+		}
+		
+		neighptr = odp_buffer_addr(neighbor);
+		
+		switch(neighptr->state){
+		case ND6_NC_STALE:
+			neighptr->state = ND6_NC_DELAY;
+			neighptr->state_tstamp = now;
+		case ND6_NC_REACHABLE:
+		case ND6_NC_DELAY:
+		case ND6_NC_PROBE:
+			sendnd6 = 0;
+			dst = neighptr->hwaddr;
+			res = NETPP_CONTINUE;
+			break;
+		case ND6_NC__PHANTOM_:
+			neighptr->state        = ND6_NC_INCOMPLETE;
+		case ND6_NC_INCOMPLETE:
+			sendnd6 = 1;
+			FASTNET_PACKET_UAREA(pkt)->next = neighptr->chain;
+			neighptr->chain = pkt;
+			res = NETPP_CONSUMED;
+			neighptr->state_tstamp = now;
+			break;
+		}
+		
+		fastnet_nd6_nce_unlock(neighbor);
+		
+		fastnet_nd6_nce_put(neighbor);
 		
 		if(sendnd6){
 			/*
@@ -185,6 +254,30 @@ netpp_retcode_t ipv6_add_eth(odp_packet_t pkt,struct ip6_local_info* __restrict_
 	ipv6_setmacaddrs(ethp,src,dst);
 	
 	return NETPP_DROP;
+}
+
+static
+netpp_retcode_t nd6res_add_eth(odp_packet_t pkt,uint64_t src,uint64_t dst){
+	uint32_t ethsize,ipoff;
+	void* ethp;
+	
+	ethsize = sizeof(fnet_eth_header_t);
+	ipoff = odp_packet_l3_offset(pkt);
+	
+	if(ipoff >= ethsize){
+		odp_packet_l2_offset_set(pkt,ipoff-ethsize);
+		ethp = odp_packet_l2_ptr(pkt,NULL);
+	}else{
+		ethp = odp_packet_push_head(pkt,ethsize-ipoff);
+		odp_packet_l2_offset_set(pkt,0);
+		odp_packet_l3_offset_set(pkt,ethsize);
+	}
+	
+	if(odp_unlikely(ethp == NULL)) return NETPP_DROP;
+	
+	ipv6_setmacaddrs(ethp,src,dst);
+	
+	return NETPP_CONTINUE;
 }
 
 netpp_retcode_t fastnet_ip6_output(odp_packet_t pkt,ip6_next_hop_t* nh){
@@ -220,4 +313,33 @@ netpp_retcode_t fastnet_ip6_output(odp_packet_t pkt,ip6_next_hop_t* nh){
 	}
 }
 
+void fastnet_ip6_nd6_transmit(odp_packet_t pkt,nif_t *nif,uint64_t src,uint64_t dst){
+	uint32_t pretrail;
+	netpp_retcode_t ret;
+	odp_packet_t pkt_next;
+	
+	while(pkt!=ODP_PACKET_INVALID){
+		
+		pkt_next = FASTNET_PACKET_UAREA(pkt)->next;
+		
+		ret = nd6res_add_eth(pkt,src,dst);
+		if(odp_unlikely(ret != NETPP_CONTINUE)){
+			if(ret==NETPP_DROP) odp_packet_free(pkt);
+			pkt = pkt_next;
+			continue;
+		}
+		/*
+		 * Do we have any data in front of the Layer 2 header? Get Rid of it!
+		 */
+		pretrail = odp_packet_l2_offset(pkt);
+		if(odp_unlikely(pretrail>0))
+			odp_packet_pull_head(pkt,pretrail);
+		
+		ret = fastnet_pkt_output(pkt,nif);
+		if(odp_unlikely(ret != NETPP_CONSUMED)){
+			odp_packet_free(pkt);
+		}
+		pkt = pkt_next;
+	}
+}
 

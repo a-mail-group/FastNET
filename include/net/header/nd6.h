@@ -238,3 +238,83 @@ typedef struct ODP_PACKED
 #define ND6_OPTION_REDIRECT 4
 #define ND6_OPTION_MTU      5
 
+/*
+ * RFC-4861 4.6.2.  Prefix Information
+ *
+ *     0                   1                   2                   3
+ *     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ *    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *    |     Type      |    Length     | Prefix Length |L|A| Reserved1 |
+ *    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *    |                         Valid Lifetime                        |
+ *    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *    |                       Preferred Lifetime                      |
+ *    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *    |                           Reserved2                           |
+ *    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *    |                                                               |
+ *    +                                                               +
+ *    |                                                               |
+ *    +                            Prefix                             +
+ *    |                                                               |
+ *    +                                                               +
+ *    |                                                               |
+ *    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *
+ *
+ *    Type           3
+ *
+ *    Length         4
+ *
+ *    Prefix Length  8-bit unsigned integer.  The number of leading bits
+ *                   in the Prefix that are valid.  The value ranges
+ *                   from 0 to 128.
+ */
+
+typedef struct ODP_PACKED
+{
+	uint8_t      prefix_length;
+	uint8_t      flags;
+	uint32_t     valid_lifetime;
+	uint32_t     preferred_lifetime;
+	uint32_t     reserved2;
+	ipv6_addr_t  prefix;
+} nd6_option_prefix_t;
+
+#define ND6_OPTION_PREFIX_OFFSET   2
+
+#define ND6_OPTION_PREFIX_FLAG_L  0x80
+#define ND6_OPTION_PREFIX_FLAG_A  0x80
+
+/*
+ * RFC-4861 4.6.4.  MTU
+ *
+ *     0                   1                   2                   3
+ *     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ *    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *    |     Type      |    Length     |           Reserved            |
+ *    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *    |                              MTU                              |
+ *    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *
+ *    Type           5
+ *
+ *    Length         1
+ *
+ *    Reserved       This field is unused.  It MUST be initialized to
+ *                   zero by the sender and MUST be ignored by the
+ *                   receiver.
+ *
+ *    MTU            32-bit unsigned integer.  The recommended MTU for
+ *                   the link.
+ */
+
+#define ND6_OPTION_MTU_OFFSET 4
+#define ND6_OPTION_MTU_LENGTH 4
+
+#if 0
+typedef struct ODP_PACKED
+{
+} nd6_option_xxx_t;
+#endif
+

@@ -32,3 +32,14 @@ netpp_retcode_t fastnet_pkt_loopback(odp_packet_t pkt,nif_t *dest);
  */
 void fastnet_ip_arp_transmit(odp_packet_t pkt,nif_t *nif,uint64_t src,uint64_t dst);
 
+/*
+ * Transmit a chain of ip6-packets with the given source and destination address.
+ *
+ * ARGS:
+ *   pkt  the packet chain.
+ *   nif  the network interface to send it through.
+ *   src  source MAC address.
+ *   dst  target MAC address.
+ */
+void fastnet_ip6_nd6_transmit(odp_packet_t pkt,nif_t *nif,uint64_t src,uint64_t dst);
+

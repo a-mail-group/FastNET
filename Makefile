@@ -44,7 +44,8 @@ net += src/net/ipv4_reass.o
 net += src/net/ipv6check.o
 net += src/net/ipv6_select.o
 net += src/net/ipv6_classifier.o
-net += src/net/ipv6_mac_cache.o
+
+net += src/net/nd6_cache.o
 net += src/net/net_init.o
 
 net += src/net/tlp_init.o

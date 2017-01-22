@@ -174,6 +174,23 @@ netpp_retcode_t fastnet_icmpv6_input(odp_packet_t pkt){
 	 * Router Advertisemnt.
 	 **************************/
 	case FNET_ICMP6_TYPE_ROUTER_ADVERTISEMENT:
+		/*
+		 * RFC-4861 6.1.2.  Validation of Router Advertisement Messages
+		 *
+		 *  A node MUST silently discard any received Router Advertisement
+		 *  messages that do not satisfy all of the following validity checks:
+		 *
+		 *  - IP Source Address is a link-local address.  Routers must use
+		 *    their link-local address as the source for Router Advertisement
+		 *    and Redirect messages so that hosts can uniquely identify
+		 *    routers.
+		 *  - The IP Hop Limit field has a value of 255, i.e., the packet
+		 *    could not possibly have been forwarded by a router.
+		 *  - ICMP Checksum is valid.
+		 */
+		if(odp_unlikely(!IP6_ADDR_IS_LINKLOCAL(pair.src))) return NETPP_DROP;
+		if(odp_unlikely(pair.hop_limit != 255)) return NETPP_DROP;
+		
 		//netnd6_router_advertisement_receive(nif,pkt,&src_ip,&dest_ip);
 		break;
 	/**************************
