@@ -22,14 +22,22 @@
 #include <net/nif.h>
 #include <net/header/ip6.h>
 
+#define IPV6_DEFAULT_PREFIX 64
+
 #define IPV6_NIF_ADDR_MAX     8
 #define IPV6_NIF_MULTCAST_MAX 20
 
 enum
 {
-	FNET_NETIF_IP_ADDR_TYPE_MANUAL = 0,            /* The address is set manually.*/
-	FNET_NETIF_IP_ADDR_TYPE_AUTOCONFIGURABLE = 1,  /* The address is set using "Auto-IP" link-local autoconfiguration. */
-	FNET_NETIF_IP_ADDR_TYPE_DHCP = 2               /* The address is set using DHCP. */
+	FASTNET_IP6_ADDR_TYPE_MANUAL = 0,            /* The address is set manually.*/
+	FASTNET_IP6_ADDR_TYPE_AUTOCONFIGURABLE = 1,  /* The address is set using "Auto-IP" link-local autoconfiguration. */
+	FASTNET_IP6_ADDR_TYPE_DHCP = 2               /* The address is set using DHCP. */
+};
+
+enum
+{
+	FASTNET_IP6_ADDR_TENTATIVE = 0, /* Tentative address*/
+	FASTNET_IP6_ADDR_PREFERED  = 1, /* Tentative address*/
 };
 
 typedef struct
@@ -41,7 +49,7 @@ typedef struct
 	uint64_t      lifetime;                  /* Address lifetime (in seconds). 0xFFFFFFFF = Infinite Lifetime
 	                                          * RFC4862. A link-local address has an infinite preferred and valid lifetime; it
 	                                          * is never timed out.*/
-	size_t        prefix_length;             /* Prefix length (in bits). The number of leading bits
+	uint8_t       prefix_length;             /* Prefix length (in bits). The number of leading bits
 	                                          * in the Prefix that are valid. */
 	uint32_t      dad_transmit_counter;      /* Counter used by DAD. Equals to the number
 	                                          * of NS transmits till DAD is finished.*/
@@ -69,9 +77,14 @@ struct ipv6_nif_struct{
 	unsigned                 pmtu_on : 1;  /* < IPv6/ICMPv6 PMTU Enabled*/
 };
 
+
 int fastnet_ipv6_deactivated(struct ipv6_nif_struct *ipv6);
 int fastnet_ipv6_addr_is_self(struct ipv6_nif_struct *ipv6, ipv6_addr_t *addr);
 int fastnet_ipv6_addr_is_own_ip6_solicited_multicast(struct ipv6_nif_struct *ipv6, ipv6_addr_t *addr);
 
 /* Select the best source-IP for the destination-IP (see RFC3484 .5: Source Address Selection) */
 int fastnet_ipv6_addr_select(struct ipv6_nif_struct *ipv6, ipv6_addr_t *src, ipv6_addr_t *dest);
+
+/* Adds an IPv6 address to the interface. */
+int fastnet_ipv6_addr_add(struct ipv6_nif_struct *ipv6, ipv6_addr_t *addr,uint8_t prefix);
+
