@@ -46,7 +46,7 @@ typedef struct
 	ipv6_addr_t   solicited_multicast_addr;  /* Solicited-node multicast */
 	
 	odp_time_t    creation_time;             /* Time of entry creation (in seconds).*/
-	uint64_t      lifetime;                  /* Address lifetime (in seconds). 0xFFFFFFFF = Infinite Lifetime
+	uint32_t      lifetime;                  /* Address lifetime (in seconds). 0xFFFFFFFF = Infinite Lifetime
 	                                          * RFC4862. A link-local address has an infinite preferred and valid lifetime; it
 	                                          * is never timed out.*/
 	uint8_t       prefix_length;             /* Prefix length (in bits). The number of leading bits
@@ -87,4 +87,7 @@ int fastnet_ipv6_addr_select(struct ipv6_nif_struct *ipv6, ipv6_addr_t *src, ipv
 
 /* Adds an IPv6 address to the interface. */
 int fastnet_ipv6_addr_add(struct ipv6_nif_struct *ipv6, ipv6_addr_t *addr,uint8_t prefix);
+
+/* Adds an IPv6 autoconf-address to the interface. */
+int fastnet_ipv6_addr_autoconf(nif_t *nif);
 
