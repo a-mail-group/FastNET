@@ -164,48 +164,29 @@ netpp_retcode_t ipv6_add_eth(odp_packet_t pkt,struct ip6_local_info* __restrict_
 		
 		now = odp_time_global();
 		
+		
+		fastnet_nd6_nce_lock_key(odata->outnif,dst_ip);
+		
 		/*
 		 * Check Neigbor cache.
 		 */
 		
-		neighbor = fastnet_nd6_nce_find(odata->outnif,dst_ip);
+		neighbor = fastnet_nd6_nce_find_or_create(odata->outnif,dst_ip,now);
 		
-		if(neighbor == ODP_BUFFER_INVALID){
-			neighbor = fastnet_nd6_nce_alloc();
-			
-			if(odp_unlikely( neighbor==ODP_BUFFER_INVALID ) ) return NETPP_DROP;
-			
-			neighptr = odp_buffer_addr(neighbor);
-			
-			neighptr->nif          = odata->outnif;
-			neighptr->ipaddr       = dst_ip;
-			neighptr->state        = ND6_NC_INCOMPLETE;
-			neighptr->state_tstamp = now;
-			neighptr->is_router    = 0;
-			
-			/*
-			 * Generate the Key-Hash of this entry.
-			 */
-			fastnet_nd6_nce_hashit(neighbor);
-			
-			fastnet_nd6_nce_lock(neighbor);
-			/*
-			 * Check, if another key had been inserted.
-			 */
-			alt = fastnet_nd6_nce_find(odata->outnif,dst_ip);
-			if(odp_likely(alt == ODP_BUFFER_INVALID)){
-				fastnet_nd6_nce_ht_enter(neighbor);
-			}else{
-				fastnet_nd6_nce_put(neighbor);
-				neighbor = alt;
-			}
-		}else{
-			fastnet_nd6_nce_lock(neighbor);
-		}
+		if(odp_unlikely( neighbor==ODP_BUFFER_INVALID ) ) return NETPP_DROP;
 		
 		neighptr = odp_buffer_addr(neighbor);
 		
 		switch(neighptr->state){
+		case ND6_NC__PHANTOM_:
+			neighptr->state        = ND6_NC_INCOMPLETE;
+		case ND6_NC_INCOMPLETE:
+			sendnd6 = 1;
+			FASTNET_PACKET_UAREA(pkt)->next = neighptr->chain;
+			neighptr->chain = pkt;
+			res = NETPP_CONSUMED;
+			neighptr->state_tstamp = now;
+			break;
 		case ND6_NC_STALE:
 			neighptr->state = ND6_NC_DELAY;
 			neighptr->state_tstamp = now;
@@ -216,19 +197,9 @@ netpp_retcode_t ipv6_add_eth(odp_packet_t pkt,struct ip6_local_info* __restrict_
 			dst = neighptr->hwaddr;
 			res = NETPP_CONTINUE;
 			break;
-		case ND6_NC__PHANTOM_:
-			neighptr->state        = ND6_NC_INCOMPLETE;
-		case ND6_NC_INCOMPLETE:
-			sendnd6 = 1;
-			FASTNET_PACKET_UAREA(pkt)->next = neighptr->chain;
-			neighptr->chain = pkt;
-			res = NETPP_CONSUMED;
-			neighptr->state_tstamp = now;
-			break;
 		}
 		
 		fastnet_nd6_nce_unlock(neighbor);
-		
 		fastnet_nd6_nce_put(neighbor);
 		
 		if(sendnd6){
