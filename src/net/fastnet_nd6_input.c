@@ -588,9 +588,20 @@ netpp_retcode_t fastnet_nd6_radv_input(odp_packet_t pkt,ipv6_addr_t* ipaddr_p){
 		neighbor = fastnet_nd6_nce_find_or_create(nif,*ipaddr_p,now);
 		if(odp_unlikely(neighbor==ODP_BUFFER_INVALID)) goto end_neighbor_cache_handling;
 		neighptr = odp_buffer_addr(neighbor);
-		neighptr->state = ND6_NC_STALE;
 		neighptr->state_tstamp = now;
 		neighptr->is_router    = 0xff;
+		
+		switch(neighptr->state) {
+		case ND6_NC_REACHABLE:
+		case ND6_NC_DELAY:
+		case ND6_NC_PROBE:
+			if(neighptr->hwaddr==hwaddr) break;
+		case ND6_NC__PHANTOM_:
+		case ND6_NC_INCOMPLETE:
+			neighptr->state  = ND6_NC_STALE;
+			break;
+		}
+		neighptr->hwaddr = hwaddr;
 		
 		sendchain              = neighptr->chain;
 		neighptr->chain        = ODP_PACKET_INVALID;
@@ -603,7 +614,6 @@ netpp_retcode_t fastnet_nd6_radv_input(odp_packet_t pkt,ipv6_addr_t* ipaddr_p){
 		if(neighbor!=ODP_BUFFER_INVALID){
 			neighptr = odp_buffer_addr(neighbor);
 			neighptr               = odp_buffer_addr(neighbor);
-			neighptr->state        = ND6_NC_STALE;
 			neighptr->state_tstamp = now;
 			neighptr->is_router    = 0xff;
 		}
