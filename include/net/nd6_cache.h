@@ -162,6 +162,26 @@ void fastnet_nd6_nce_ht_leave(nd6_nce_handle_t handle);
 
 nd6_nce_handle_t fastnet_nd6_nce_find(nif_t* nif, ipv6_addr_t addr);
 
+/*
+ * Looks up a Neighbor Cache Entry, and returns wether or not it is a non-phantom-entry.
+ *
+ * Return:
+ *   TRUE : (*pinst) != ODP_BUFFER_INVALID  AND  ->state != ND6_NC__PHANTOM_
+ *
+ *   FALSE: (*pinst) == ODP_BUFFER_INVALID  OR   ->state == ND6_NC__PHANTOM_
+ *
+ */
+int fastnet_nd6_nce_find_valid(nif_t* nif, ipv6_addr_t addr, nd6_nce_handle_t *pinst);
+
+nd6_nce_handle_t fastnet_nd6_nce_find_or_create(nif_t* nif, ipv6_addr_t addr, odp_time_t now);
+
+/*
+ * Looks up a Neighbor Cache Entry, and checks, wether or not it is a non-phantom entry.
+ *
+ * This function SHALL not return any phantom-entry.
+ */
+nd6_nce_handle_t fastnet_nd6_nce_find_only_valid(nif_t* nif, ipv6_addr_t addr);
+
 /* Router-List stuff. */
 void fastnet_nd6_nce_rl_enter(nd6_nce_handle_t handle);
 

@@ -104,6 +104,7 @@ nd6_nce_handle_t fastnet_nd6_nce_alloc(){
 		ptr->in_hashtab = 0;
 		ptr->in_agelist = 0;
 		ptr->in_router = 0;
+		ptr->is_router = 0;
 		ptr->chain = ODP_PACKET_INVALID;
 	}
 	return handle;
@@ -237,7 +238,7 @@ void fastnet_nd6_nce_ht_leave(nd6_nce_handle_t handle){
 		if(odp_unlikely(*bp==ODP_BUFFER_INVALID)) goto terminate;
 		bp = &(((nd6_nce_t*)odp_buffer_addr(*bp))->next_hashtab);
 	}
-	NET_ASSERT( *bp == handle );
+	NET_ASSERT( *bp == handle , "*bp == handle\n");
 	*bp = ptr->next_hashtab;
 	fastnet_nd6_nce_put(handle);
 	
@@ -279,6 +280,54 @@ nd6_nce_handle_t fastnet_nd6_nce_find(nif_t* nif, ipv6_addr_t addr){
 	
 	odp_atomic_inc_u32(&(ptr->refc));
 	odp_spinlock_unlock(&(ci->neighbor.bucket_locks[lockno]));
+	
+	return handle;
+}
+
+int fastnet_nd6_nce_find_valid(nif_t* nif, ipv6_addr_t addr, nd6_nce_handle_t *pinst){
+	nd6_nce_t *ptr;
+	*pinst = fastnet_nd6_nce_find(nif,addr);
+	
+	if(*pinst == ODP_BUFFER_INVALID) return 0;
+	
+	ptr = odp_buffer_addr(*pinst);
+	/* Only Valid Neighbor Cache-Entries result in true. */
+	return (ptr->state) != ND6_NC__PHANTOM_;
+}
+nd6_nce_handle_t fastnet_nd6_nce_find_or_create(nif_t* nif, ipv6_addr_t addr, odp_time_t now){
+	nd6_nce_t *ptr;
+	nd6_nce_handle_t handle;
+	handle = fastnet_nd6_nce_find(nif,addr);
+	
+	if(handle == ODP_BUFFER_INVALID){
+		handle = fastnet_nd6_nce_alloc();
+		if(odp_unlikely(handle == ODP_BUFFER_INVALID)) return ODP_BUFFER_INVALID;
+		ptr               = odp_buffer_addr(handle);
+		ptr->nif          = nif;
+		ptr->ipaddr       = addr;
+		ptr->state        = ND6_NC__PHANTOM_;
+		ptr->state_tstamp = now;
+		ptr->key_hash     = ip6_hash(nif,addr);
+		
+		fastnet_nd6_nce_ht_enter(handle);
+		return handle;
+	}
+	
+	return handle;
+}
+
+nd6_nce_handle_t fastnet_nd6_nce_find_only_valid(nif_t* nif, ipv6_addr_t addr){
+	nd6_nce_t *ptr;
+	nd6_nce_handle_t handle;
+	handle = fastnet_nd6_nce_find(nif,addr);
+	
+	if(handle != ODP_BUFFER_INVALID){
+		ptr = odp_buffer_addr(handle);
+		if(ptr->state == ND6_NC__PHANTOM_){
+			fastnet_nd6_nce_put(handle);
+			return ODP_BUFFER_INVALID;
+		};
+	}
 	
 	return handle;
 }
@@ -327,7 +376,7 @@ void fastnet_nd6_nce_rl_leave(nd6_nce_handle_t handle){
 		if(odp_unlikely(*bp==ODP_BUFFER_INVALID)) goto terminate;
 		bp = &(((nd6_nce_t*)odp_buffer_addr(*bp))->next_router);
 	}
-	NET_ASSERT( *bp == handle );
+	NET_ASSERT( *bp == handle , "*bp == handle\n");
 	*bp = ptr->next_router;
 	fastnet_nd6_nce_put(handle);
 	

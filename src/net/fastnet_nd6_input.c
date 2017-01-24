@@ -126,43 +126,28 @@ netpp_retcode_t fastnet_nd6_nsol_input(odp_packet_t pkt,int source_is_unspecifie
 		fastnet_nd6_nce_lock_key(nif,target_addr);
 		
 		/*
-		 * First, check the neighbor cache.
+		 * First, check the neighbor cache, and create if necessary.
 		 */
-		neighbor = fastnet_nd6_nce_find(nif,target_addr);
+		neighbor = fastnet_nd6_nce_find_or_create(nif,target_addr,now);
+		
+		if(odp_unlikely( neighbor==ODP_BUFFER_INVALID ) ) {
+			fastnet_nd6_nce_unlock_key(nif,target_addr);
+			goto insert_or_update_done;
+		}
+		
+		neighptr = odp_buffer_addr(neighbor);
 		
 		/*
 		 * If an entry does not already exist, the
 		 * node SHOULD create a new one and set its reachability state to STALE
 		 * as specified in Section 7.3.3.
 		 */
-		if(neighbor == ODP_BUFFER_INVALID){
-			neighbor = fastnet_nd6_nce_alloc();
-			
-			if(odp_unlikely( neighbor==ODP_BUFFER_INVALID ) ){
-				fastnet_nd6_nce_unlock_key(nif,target_addr);
-				goto insert_or_update_done;
-			}
-			
-			neighptr = odp_buffer_addr(neighbor);
-			neighptr->nif          = nif;
-			neighptr->ipaddr       = target_addr;
+		if(neighptr->state == ND6_NC__PHANTOM_){
 			neighptr->state        = ND6_NC_STALE;
 			neighptr->state_tstamp = now;
 			neighptr->hwaddr       = hwaddr;
 			neighptr->is_router    = 0;
-			
-			/*
-			 * Generate the Key-Hash of this entry.
-			 */
-			fastnet_nd6_nce_hashit(neighbor);
-			
-			/*
-			 * Insert it into the Hashtable.
-			 */
-			fastnet_nd6_nce_ht_enter(neighbor);
-		}else{
-			neighptr = odp_buffer_addr(neighbor);
-		}
+		} else
 		
 		switch(neighptr->state){
 		case ND6_NC_STALE:
@@ -182,8 +167,6 @@ netpp_retcode_t fastnet_nd6_nsol_input(odp_packet_t pkt,int source_is_unspecifie
 				neighptr->hwaddr       = hwaddr;
 			}
 			break;
-		case ND6_NC__PHANTOM_:
-			/* LEMMA: updating the Entry behaves identical with creating a new one. */
 		case ND6_NC_INCOMPLETE:
 			sendchain = neighptr->chain;
 			neighptr->state        = ND6_NC_STALE;
@@ -310,7 +293,7 @@ netpp_retcode_t fastnet_nd6_nadv_input(odp_packet_t pkt,int is_dest_multicast){
 	/*
 	 * Then, check the neighbor cache.
 	 */
-	neighbor = fastnet_nd6_nce_find(nif,target_addr);
+	neighbor = fastnet_nd6_nce_find_only_valid(nif,target_addr);
 	
 	/*
 	 * RFC-4861 7.2.5.  Receipt of Neighbor Advertisements
@@ -325,13 +308,6 @@ netpp_retcode_t fastnet_nd6_nadv_input(odp_packet_t pkt,int is_dest_multicast){
 		return NETPP_DROP;
 	}else{
 		neighptr = odp_buffer_addr(neighbor);
-	}
-	
-	/* Treat Phantom-Entries as non-existing. */
-	if(odp_unlikely(neighptr->state == ND6_NC__PHANTOM_)){
-		fastnet_nd6_nce_unlock(neighbor);
-		fastnet_nd6_nce_put(neighbor);
-		return NETPP_DROP;
 	}
 	
 	/*
@@ -595,7 +571,9 @@ netpp_retcode_t fastnet_nd6_radv_input(odp_packet_t pkt,ipv6_addr_t* ipaddr_p){
 	
 	
 	/* Then, check the neighbor cache. */
-	neighbor = fastnet_nd6_nce_find(nif,*ipaddr_p);
+	//neighbor = fastnet_nd6_nce_find(nif,*ipaddr_p);
+	
+	neighbor = ODP_BUFFER_INVALID;
 	
 	/*
 	 * If the advertisement contains a Source Link-Layer Address
@@ -605,18 +583,11 @@ netpp_retcode_t fastnet_nd6_radv_input(odp_packet_t pkt,ipv6_addr_t* ipaddr_p){
 	 */
 	if(src_mac_len>0){
 		hwaddr = fastnet_mac_to_int(src_mac);
-		if(neighbor==ODP_BUFFER_INVALID){
-			neighbor = fastnet_nd6_nce_alloc();
-			if(odp_unlikely(neighbor==ODP_BUFFER_INVALID)) goto end_neighbor_cache_handling;
-			neighptr = odp_buffer_addr(neighbor);
-			neighptr->nif          = nif;
-			neighptr->ipaddr       = *ipaddr_p;
-			fastnet_nd6_nce_hashit(neighbor);
-			fastnet_nd6_nce_ht_enter(neighbor);
-		}else{
-			neighptr = odp_buffer_addr(neighbor);
-		}
 		
+		/* Find or create an Neighbor Cache Entry. */
+		neighbor = fastnet_nd6_nce_find_or_create(nif,*ipaddr_p,now);
+		if(odp_unlikely(neighbor==ODP_BUFFER_INVALID)) goto end_neighbor_cache_handling;
+		neighptr = odp_buffer_addr(neighbor);
 		neighptr->state = ND6_NC_STALE;
 		neighptr->state_tstamp = now;
 		neighptr->is_router    = 0xff;
@@ -628,13 +599,17 @@ netpp_retcode_t fastnet_nd6_radv_input(odp_packet_t pkt,ipv6_addr_t* ipaddr_p){
 		 * If no Source Link-Layer Address is included, but a corresponding Neighbor
 		 * Cache entry exists, its IsRouter flag MUST be set to TRUE.
 		 */
+		neighbor = fastnet_nd6_nce_find(nif,*ipaddr_p);
 		if(neighbor!=ODP_BUFFER_INVALID){
+			neighptr = odp_buffer_addr(neighbor);
 			neighptr               = odp_buffer_addr(neighbor);
 			neighptr->state        = ND6_NC_STALE;
 			neighptr->state_tstamp = now;
 			neighptr->is_router    = 0xff;
 		}
 	}
+	
+	/* LEMMA: If an Entry exists, the variable 'neighbor' holds it. */
 	
 	router_lifetime = odp_be_to_cpu_16(message->router_lifetime);
 	
@@ -664,22 +639,11 @@ netpp_retcode_t fastnet_nd6_radv_input(odp_packet_t pkt,ipv6_addr_t* ipaddr_p){
 	 * received advertisement.
 	 */
 	else{
-		if(neighbor==ODP_BUFFER_INVALID){
-			neighbor = fastnet_nd6_nce_alloc();
-			if(odp_unlikely(neighbor==ODP_BUFFER_INVALID)) goto end_neighbor_cache_handling;
-			neighptr = odp_buffer_addr(neighbor);
-			neighptr->nif          = nif;
-			neighptr->ipaddr       = *ipaddr_p;
-			
-			/* Create it as an Phantom-Entry. */
-			neighptr->state        = ND6_NC__PHANTOM_;
-			neighptr->state_tstamp = now;
-			neighptr->is_router    = 0xff;
-			fastnet_nd6_nce_hashit(neighbor);
-			fastnet_nd6_nce_ht_enter(neighbor);
-		}else{
-			neighptr = odp_buffer_addr(neighbor);
-		}
+		if(neighbor==ODP_BUFFER_INVALID)
+			neighbor = fastnet_nd6_nce_find_or_create(nif,*ipaddr_p,now);
+		
+		if(odp_unlikely(neighbor==ODP_BUFFER_INVALID)) goto end_neighbor_cache_handling;
+		
 		neighptr                  = odp_buffer_addr(neighbor);
 		neighptr->router_tstamp   = now;
 		neighptr->router_lifetime = router_lifetime;
