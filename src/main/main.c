@@ -135,6 +135,7 @@ int main(){
 	struct ipv6_nif_struct* ipv6;
 	ipv4 = calloc(sizeof(*ipv4),1);
 	ipv6 = calloc(sizeof(*ipv6),1);
+	fastnet_ipv6_init(ipv6);
 	fastnet_ip_set(ipv4,ipv4_addr_init(192,168,99,109),ipv4_addr_init(0xff,0xff,0,0));
 	// Ping me: 192.168.99.109
 	

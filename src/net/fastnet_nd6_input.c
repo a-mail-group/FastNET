@@ -13,7 +13,9 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
+#include <odp_api.h>
 #include <net/nd6.h>
+#include <net/ipv6.h>
 #include <net/header/nd6.h>
 #include <net/safe_packet.h>
 #include <net/header/ip6defs.h>
@@ -21,7 +23,31 @@
 #include <net/nd6_cache.h>
 #include <net/packet_output.h>
 
-/* RFC-4861 */
+/*
+ * RFC-4861 10. Protocol Constants.
+ * Router constants:
+ *          MAX_INITIAL_RTR_ADVERT_INTERVAL  16 seconds
+ *          MAX_INITIAL_RTR_ADVERTISEMENTS    3 transmissions
+ *          MAX_FINAL_RTR_ADVERTISEMENTS      3 transmissions
+ *          MIN_DELAY_BETWEEN_RAS             3 seconds
+ *          MAX_RA_DELAY_TIME                 .5 seconds
+ *
+ * Host constants:
+ *          MAX_RTR_SOLICITATION_DELAY        1 second
+ *          RTR_SOLICITATION_INTERVAL         4 seconds
+ *          MAX_RTR_SOLICITATIONS             3 transmissions
+ *
+ * Node constants:
+ *          MAX_MULTICAST_SOLICIT             3 transmissions
+ *          MAX_UNICAST_SOLICIT               3 transmissions
+ *          MAX_ANYCAST_DELAY_TIME            1 second
+ *          MAX_NEIGHBOR_ADVERTISEMENT        3 transmissions
+ *          REACHABLE_TIME               30,000 milliseconds
+ *          RETRANS_TIMER                 1,000 milliseconds
+ *          DELAY_FIRST_PROBE_TIME            5 seconds
+ *          MIN_RANDOM_FACTOR                 .5
+ *          MAX_RANDOM_FACTOR                 1.5
+ */
 
 
 netpp_retcode_t fastnet_nd6_nsol_input(odp_packet_t pkt,int source_is_unspecified){
@@ -205,7 +231,6 @@ netpp_retcode_t fastnet_nd6_nadv_input(odp_packet_t pkt,int is_dest_multicast){
 	nd6_nce_handle_t  neighbor;
 	nd6_nce_t*        neighptr;
 	odp_time_t        now;
-	
 	
 	nif = odp_packet_user_ptr(pkt);
 	message = fastnet_safe_l4(pkt,sizeof(nd6_nadv_msg_t));
@@ -449,6 +474,10 @@ netpp_retcode_t fastnet_nd6_radv_input(odp_packet_t pkt,ipv6_addr_t* ipaddr_p){
 	odp_time_t          now;
 	uint16_t            router_lifetime;
 	odp_packet_t        sendchain;
+	uint32_t            random_num,temp_num;
+	
+	/* XXX: ODP-RANDOM: ODP-API implementation != ODP-API documentation */
+	odp_random_data((uint8_t*)&random_num,sizeof(random_num),0);
 	
 	nif = odp_packet_user_ptr(pkt);
 	message = fastnet_safe_l4(pkt,sizeof(nd6_radv_msg_t));
@@ -515,22 +544,37 @@ netpp_retcode_t fastnet_nd6_radv_input(odp_packet_t pkt,ipv6_addr_t* ipaddr_p){
 		cur += oh.length<<3;
 	}
 	
-	
-	
+	odp_spinlock_lock(&(nif->ipv6->fields_lock));
 	/*
 	 * If the received Cur Hop Limit value is non-zero, the host SHOULD set
 	 * its CurHopLimit variable to the received value.
 	 */
 	if(message->cur_hop_limit!=0){
-		// TODO
+		nif->ipv6->hop_limit = message->cur_hop_limit;
 	}
 	
 	/*
-	 * If the received Reachable Time value is non-zero, the host SHOULD set
-	 * its BaseReachableTime variable to the received value.
+	 * RFC:
+	 *   If the received Reachable Time value is non-zero, the host SHOULD set
+	 *   its BaseReachableTime variable to the received value. If the new
+	 *   value differs from the previous value, the host SHOULD re-compute a
+	 *   new random ReachableTime value.  ReachableTime is computed as a
+	 *   uniformly distributed random value between MIN_RANDOM_FACTOR and
+	 *   MAX_RANDOM_FACTOR times the BaseReachableTime.  Using a random
+	 *   component eliminates the possibility that Neighbor Unreachability
+	 *   Detection messages will synchronize with each other.
+	 *
+	 * BTW: MIN_RANDOM_FACTOR = 0.5 ; MAX_RANDOM_FACTOR = 1.5
+	 *
+	 * How to calculate ReachableTime:
+	 *    ReachableTime := BaseReachableTime * random(0.5 ... 1.5)
+	 *  aka.
+	 *    ReachableTime := 1 + random(0 ... BaseReachableTime) + floor(BaseReachableTime / 2)
 	 */
 	if(message->reachable_time!=0){
-		// TODO
+		temp_num = odp_be_to_cpu_32(message->reachable_time);
+		nif->ipv6->base_reachable_time = temp_num;
+		nif->ipv6->reachable_time      = 1+(random_num%temp_num)+(temp_num>>1);
 	}
 	
 	/*
@@ -538,7 +582,7 @@ netpp_retcode_t fastnet_nd6_radv_input(odp_packet_t pkt,ipv6_addr_t* ipaddr_p){
 	 * field, if the received value is non-zero.
 	 */
 	if(message->retrans_timer!=0){
-		// TODO
+		nif->ipv6->retrans_timer = odp_be_to_cpu_32(message->retrans_timer);
 	}
 	
 	/*
@@ -548,9 +592,14 @@ netpp_retcode_t fastnet_nd6_radv_input(odp_packet_t pkt,ipv6_addr_t* ipaddr_p){
 	 * specified in the link-type-specific document (e.g., [IPv6-ETHER]).
 	 */
 	if(has_mtu){
-		// TODO
+		if(mtu < IP6_DEFAULT_MTU) mtu = IP6_DEFAULT_MTU;
+		/* TODO locking. */
+		
+		if(mtu < nif->ipv6->mtu) nif->ipv6->mtu = mtu;
+		
 	}
 	
+	odp_spinlock_unlock(&(nif->ipv6->fields_lock));
 	
 	/* ----------------------------------------------------------------- */
 	

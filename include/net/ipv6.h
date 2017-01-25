@@ -69,14 +69,22 @@ typedef struct
 } ipv6_nif_multicast_t;
 
 struct ipv6_nif_struct{
+	odp_spinlock_t           fields_lock;
+	odp_spinlock_t           address_lock;
+	odp_spinlock_t           multicast_lock;
 	ipv6_nif_addr_t          addrs[IPV6_NIF_ADDR_MAX];
 	ipv6_nif_multicast_t     multicasts[IPV6_NIF_MULTCAST_MAX];
 	uint8_t                  hop_limit;
-	uint32_t                 pmtu;
+	uint32_t                 mtu;  /* MTU */
+	uint32_t                 pmtu; /* PMTU (later). */
+	uint32_t                 base_reachable_time;
+	uint32_t                 reachable_time;
+	uint32_t                 retrans_timer;
 	unsigned                 disabled : 1; /* < IPv6 is Disabled*/
 	unsigned                 pmtu_on : 1;  /* < IPv6/ICMPv6 PMTU Enabled*/
 };
 
+void fastnet_ipv6_init(struct ipv6_nif_struct *ipv6);
 
 int fastnet_ipv6_deactivated(struct ipv6_nif_struct *ipv6);
 int fastnet_ipv6_addr_is_self(struct ipv6_nif_struct *ipv6, ipv6_addr_t *addr);
@@ -90,4 +98,5 @@ int fastnet_ipv6_addr_add(struct ipv6_nif_struct *ipv6, ipv6_addr_t *addr,uint8_
 
 /* Adds an IPv6 autoconf-address to the interface. */
 int fastnet_ipv6_addr_autoconf(nif_t *nif);
+
 

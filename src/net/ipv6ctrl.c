@@ -87,13 +87,18 @@ int ipv6_addr_add(struct ipv6_nif_struct *ipv6, struct addr_creation_request* re
 	
 	freei = IPV6_NIF_ADDR_MAX;
 	
+	odp_spinlock_lock(&(ipv6->address_lock));
+	
 	for(i=0;i<IPV6_NIF_ADDR_MAX;++i){
 		if( !ipv6->addrs[i].used ){
 			freei = i;
 			break;
 		}
 	}
-	if(freei == IPV6_NIF_ADDR_MAX) return 0;
+	if(freei == IPV6_NIF_ADDR_MAX){
+		odp_spinlock_unlock(&(ipv6->address_lock));
+		return 0;
+	}
 	
 	ipv6->addrs[i].address                  = ipaddr;
 	ipv6->addrs[i].solicited_multicast_addr = solicited;
@@ -105,6 +110,8 @@ int ipv6_addr_add(struct ipv6_nif_struct *ipv6, struct addr_creation_request* re
 	ipv6->addrs[i].type                     = req->type;
 	ipv6->addrs[i].state                    = req->state;
 	ipv6->addrs[i].used                     = 1;
+	
+	odp_spinlock_unlock(&(ipv6->address_lock));
 	return 1;
 }
 

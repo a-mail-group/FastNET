@@ -28,10 +28,10 @@
  ******************************************************************************/
 #define IP6_ADDR_STR_SIZE       sizeof("abcd:abcd:abcd:abcd:abcd:abcd:abcd:abcd")
 
-#define IP6_HEADSIZE        40u     /* IPv6 Header size.  */
+#define IP6_HEADSIZE        40     /* IPv6 Header size.  */
 
-#define IP6_DEFAULT_MTU     1280u   /* Minimum IPv6 datagram size which    
-                                     * must be supported by all IPv6 hosts */
+#define IP6_DEFAULT_MTU     1280   /* Minimum IPv6 datagram size which    
+                                    * must be supported by all IPv6 hosts */
 
 /****************************************************************
  *
