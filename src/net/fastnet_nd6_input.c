@@ -381,7 +381,7 @@ netpp_retcode_t fastnet_nd6_nadv_input(odp_packet_t pkt,int is_dest_multicast){
 		 * take place:
 		 */
 		
-		if(msgflags & ND6_NADV_OVERRIDE){
+		if(!(msgflags & ND6_NADV_OVERRIDE)){
 			/*
 			 * I. If the Override flag is clear and the supplied link-layer address
 			 *    differs from that in the cache, then one of two actions takes
@@ -392,8 +392,12 @@ netpp_retcode_t fastnet_nd6_nadv_input(odp_packet_t pkt,int is_dest_multicast){
 			 *    b. Otherwise, the received advertisement should be ignored and
 			 *       MUST NOT update the cache.
 			 */
-			if(neighptr->state == ND6_NC_REACHABLE){
-				neighptr->state = ND6_NC_STALE;
+			if(
+				(neighptr->hwaddr != hwaddr) && 
+				(neighptr->state == ND6_NC_REACHABLE)
+			){
+				neighptr->state        = ND6_NC_STALE;
+				neighptr->state_tstamp = now;
 			}
 		}else{
 			/*
@@ -406,7 +410,8 @@ netpp_retcode_t fastnet_nd6_nadv_input(odp_packet_t pkt,int is_dest_multicast){
 			 *       MUST be inserted in the cache (if one is supplied and differs
 			 *       from the already recorded address).
 			 */
-			neighptr->hwaddr = hwaddr;
+			neighptr->hwaddr       = hwaddr;
+			neighptr->state_tstamp = now;
 			
 			/*
 			 *     - If the Solicited flag is set, the state of the entry MUST be
@@ -663,7 +668,6 @@ netpp_retcode_t fastnet_nd6_radv_input(odp_packet_t pkt,ipv6_addr_t* ipaddr_p){
 		if(neighbor!=ODP_BUFFER_INVALID){
 			neighptr = odp_buffer_addr(neighbor);
 			neighptr               = odp_buffer_addr(neighbor);
-			neighptr->state_tstamp = now;
 			neighptr->is_router    = 0xff;
 		}
 	}

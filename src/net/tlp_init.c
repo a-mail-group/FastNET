@@ -16,6 +16,7 @@
 #include <net/in_tlp.h>
 #include <net/std_lib.h>
 #include <net/ipv4_mac_cache.h>
+#include <net/nd6_cache.h>
 #include <net/std_defs.h>
 #include <net/header/layer4.h>
 
@@ -117,6 +118,7 @@ static void init(){
 
 void fastnet_tlp_init(){
 	fastnet_initialize_ipmac_cache();
+	fastnet_nd6_cache_init();
 	init();
 }
 
