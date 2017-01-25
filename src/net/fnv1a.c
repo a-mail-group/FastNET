@@ -18,7 +18,7 @@
 static const uint32_t FNV_prime = 16777619U;
 static const uint32_t FNV_basis = 2166136261U;
 
-uint32_t fastnet_fnv1a_init(){ return FNV_prime; }
+uint32_t fastnet_fnv1a_init(){ return FNV_basis; }
 uint32_t fastnet_fnv1a(uint32_t hash,const uint8_t* data,unsigned len){
 	for(;len;len--,data++){
 		hash ^= *data;
