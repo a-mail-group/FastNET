@@ -36,13 +36,13 @@ netpp_retcode_t fastnet_socket_key_obtain_ip(odp_packet_t pkt, socket_key_t *key
 	
 	if(odp_packet_has_ipv4(pkt)){
 		ip = fastnet_safe_l3(pkt,sizeof(fnet_ip_header_t));
-		if(odp_unlikely(ip!=NULL)) return NETPP_DROP;
+		if(odp_unlikely(ip==NULL)) return NETPP_DROP;
 		key->src_ip = (ipv6_addr_t){.addr32 = {0,0,0,ip->source_addr}};
 		key->dst_ip = (ipv6_addr_t){.addr32 = {0,0,0,ip->destination_addr}};
 		key->layer3_version = 4;
 	}else{
 		ip6 = fastnet_safe_l3(pkt,sizeof(fnet_ip6_header_t));
-		if(odp_unlikely(ip6!=NULL)) return NETPP_DROP;
+		if(odp_unlikely(ip6==NULL)) return NETPP_DROP;
 		key->src_ip = ip6->source_addr;
 		key->dst_ip = ip6->destination_addr;
 		key->layer3_version = 6;
@@ -65,13 +65,13 @@ netpp_retcode_t fastnet_socket_key_obtain(odp_packet_t pkt, socket_key_t *key){
 	
 	if(odp_packet_has_ipv4(pkt)){
 		ip = fastnet_safe_l3(pkt,sizeof(fnet_ip_header_t));
-		if(odp_unlikely(ip!=NULL)) return NETPP_DROP;
+		if(odp_unlikely(ip==NULL)) return NETPP_DROP;
 		key->src_ip = (ipv6_addr_t){.addr32 = {0,0,0,ip->source_addr}};
 		key->dst_ip = (ipv6_addr_t){.addr32 = {0,0,0,ip->destination_addr}};
 		key->layer3_version = 4;
 	}else{
 		ip6 = fastnet_safe_l3(pkt,sizeof(fnet_ip6_header_t));
-		if(odp_unlikely(ip6!=NULL)) return NETPP_DROP;
+		if(odp_unlikely(ip6==NULL)) return NETPP_DROP;
 		key->src_ip = ip6->source_addr;
 		key->dst_ip = ip6->destination_addr;
 		key->layer3_version = 6;
