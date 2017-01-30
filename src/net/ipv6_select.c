@@ -24,9 +24,12 @@ int fastnet_ipv6_addr_select(struct ipv6_nif_struct *ipv6, ipv6_addr_t *src, ipv
 	uint32_t best_scope,scope;
 	uint32_t best_label,label;
 	ipv6_addr_t best_addr;
+	odp_time_t diff,now;
 	
 	uint32_t targ_scope = fastnet_ipv6_scope(*dest);
 	uint32_t targ_label = fastnet_ipv6_policy_label(*dest);
+	
+	now = odp_time_global();
 	
 	ibest = IPV6_NIF_ADDR_MAX;
 	
@@ -85,7 +88,7 @@ int fastnet_ipv6_addr_select(struct ipv6_nif_struct *ipv6, ipv6_addr_t *src, ipv
 		if(
 			/* If Scope(SA) < Scope(SB): If Scope(SA) < Scope(D), then prefer SB. */
 			((best_scope < scope) && (best_scope < targ_scope)) ||
-			/* If Scope(SB) < Scope(SA): If Scope(SB) < Scope(D), ... otherwise prefer SB.*/
+			/* If Scope(SB) < Scope(SA): If Scope(SB) < Scope(D), ... otherwise prefer SB. */
 			(scope < best_scope) && (scope >= targ_scope)
 		) {
 			ibest = i;
@@ -98,9 +101,25 @@ int fastnet_ipv6_addr_select(struct ipv6_nif_struct *ipv6, ipv6_addr_t *src, ipv
 		
 		/* Rule 3:  Avoid deprecated addresses. */
 		
+		diff = odp_time_diff(now,ipv6->addrs[i].creation_time);
+		
+		/*
+		 * If the current entry is deprecated, then skip it.
+		 */
+		if(diff.tv_sec > ipv6->addrs[i].lifetime) continue;
+		
 		/* Rule 4:  Prefer home addresses. */
 		
-		/* Rule 5:  Prefer outgoing interface. */
+		/*
+		 * Rule 5:  Prefer outgoing interface.
+		 *
+		 * All addresses in the list, being handled, are assigned to the
+		 * SAME interface. Eighter ALL addresses are assigned to the outgoing
+		 * interface or ALL addresses are assigned to a different interface.
+		 *
+		 * Therefore, as this Rule is not going to have any effect, it is not
+		 * explicitely implemented.
+		 */
 		
 		/*
 		 * Rule 6: Prefer matching label.

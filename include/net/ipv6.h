@@ -37,7 +37,7 @@ enum
 enum
 {
 	FASTNET_IP6_ADDR_TENTATIVE = 0, /* Tentative address*/
-	FASTNET_IP6_ADDR_PREFERED  = 1, /* Tentative address*/
+	FASTNET_IP6_ADDR_PREFERED  = 1, /* Prefered address*/
 };
 
 typedef struct
