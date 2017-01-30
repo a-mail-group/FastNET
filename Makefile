@@ -54,6 +54,8 @@ net += src/net/tlp_init.o
 
 net += src/net/std_lib.o
 
+net += src/net/socket_key.o
+
 net += src/net_linux/start_threads.o
 net += src/net_linux/malloc.o
 
