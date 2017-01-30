@@ -35,7 +35,7 @@ struct ip_local_info{
 
 static
 netpp_retcode_t ipv4_find_route(struct ip_local_info* __restrict__  odata){
-	ipv4_addr_t dst = odata->ip->desination_addr;
+	ipv4_addr_t dst = odata->ip->destination_addr;
 	ipv4_addr_t src = odata->ip->source_addr;
 	if(odata->nh == NULL){
 		if(odp_likely(odata->ctxnif != NULL)){
@@ -67,14 +67,14 @@ nh_done:
 	 * If the Upper layer has not filled out
 	 * the source IP, we have to do it.
 	 */
-	if (odata->ip->desination_addr == 0) {
+	if (odata->ip->destination_addr == 0) {
 		/* Null-pointer check. */
 		if(odp_unlikely(odata->outnif->ipv4 == NULL)) {
 			NET_LOG("!odata->outnif->ipv4\n");
 			return NETPP_DROP;
 		}
 		
-		odata->ip->desination_addr = odata->outnif->ipv4->address;
+		odata->ip->destination_addr = odata->outnif->ipv4->address;
 	}
 	return NETPP_CONTINUE;
 }

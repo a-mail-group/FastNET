@@ -31,7 +31,7 @@ typedef struct ODP_PACKED
     uint8_t  protocol                 ;   /**< protocol */
     uint16_t  checksum                ;   /**< checksum */
     ipv4_addr_t source_addr           ;   /**< source address */
-    ipv4_addr_t desination_addr       ;   /**< destination address */
+    ipv4_addr_t destination_addr       ;   /**< destination address */
 } fnet_ip_header_t;
 
 

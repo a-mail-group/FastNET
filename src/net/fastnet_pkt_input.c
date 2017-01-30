@@ -65,7 +65,7 @@ netpp_retcode_t fastnet_ip_input(odp_packet_t pkt){
 	cksum = fastnet_ipv4_hdr_checksum(pkt);
 	if(odp_unlikely(cksum != 0)) return NETPP_DROP;
 	
-	dest_addr = ip->desination_addr;
+	dest_addr = ip->destination_addr;
 	
 	is_ours = fastnet_ip_isforme(nif->ipv4,dest_addr);
 	

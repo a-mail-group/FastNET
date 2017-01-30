@@ -74,7 +74,7 @@ netpp_retcode_t get_ip_pair(ip_pair_t* pair,odp_packet_t pkt,struct ipv4_nif_str
 	if(odp_unlikely(fastnet_ip_broadcast(ipv4,ip->source_addr))) return NETPP_DROP;
 	
 	pair->src = ip->source_addr;
-	pair->dst = ip->desination_addr;
+	pair->dst = ip->destination_addr;
 	return NETPP_CONTINUE;
 }
 
@@ -107,7 +107,7 @@ void add_response_header(ip_pair_t* pair,odp_packet_t pkt,uint32_t pktlen,uint32
 	 * In the response header, Source and Destination addresses are swapped.
 	 */
 	ip->source_addr            = pair->dst;
-	ip->desination_addr        = pair->src;
+	ip->destination_addr       = pair->src;
 }
 
 

@@ -90,7 +90,7 @@ netpp_retcode_t udp_set_head(odp_packet_t pkt, fastnet_ip_pair_t addrs, uint16_t
 		uh4->ip.protocol               = IP_PROTOCOL_UDP;
 		uh4->ip.checksum               = 0;
 		uh4->ip.source_addr            = addrs.ipv4.src;
-		uh4->ip.desination_addr        = addrs.ipv4.dst;
+		uh4->ip.destination_addr       = addrs.ipv4.dst;
 		odp_packet_l4_offset_set(pkt,sizeof(fnet_ip_header_t));
 	}
 	return NETPP_CONTINUE;
