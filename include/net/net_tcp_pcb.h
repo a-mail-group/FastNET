@@ -18,6 +18,8 @@
 #include <odp_api.h>
 #include <net/header/iphdr.h>
 
+/* XXX: may become obsolete. */
+
 typedef struct ODP_PACKED
 {
 	fnet_ip_header_t ip;

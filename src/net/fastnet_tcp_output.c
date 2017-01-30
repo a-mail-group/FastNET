@@ -16,15 +16,9 @@
 #include <net/nif.h>
 #include <net/types.h>
 #include <net/config.h>
-//#include <net/header/iphdr.h>
-//#include <net/in_tlp.h>
-#include <net/net_tcp_pcb.h>
 
-static inline netpp_retcode_t fastnet_ip_output(odp_packet_t pkt,void* uu){
+
+netpp_retcode_t fastnet_tcp_output(odp_packet_t pkt,uint16_t seq){
 	return NETPP_DROP;
-}
-
-netpp_retcode_t fastnet_tcp_output(odp_packet_t pkt,uint16_t seq, struct fastnet_tcp_pcb* fastnet){
-	
 }
 
