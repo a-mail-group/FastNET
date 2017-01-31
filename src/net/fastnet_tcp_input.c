@@ -95,7 +95,7 @@ netpp_retcode_t fastnet_tcp_input_listen(odp_packet_t pkt, fastnet_tcp_pcb_t* pa
 	pcb->rcv.nxt = seg_seq+1;
 	pcb->irs     = seg_seq;
 	pcb->iss     = iss;
-	pcb->rcv.nxt = iss+1;
+	pcb->snd.nxt = iss+1;
 	pcb->state   = SYN_RECEIVED;
 	
 	/* TODO: send ack.*/
