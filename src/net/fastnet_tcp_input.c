@@ -90,7 +90,7 @@ netpp_retcode_t fastnet_tcp_input_listen(odp_packet_t pkt, fastnet_tcp_pcb_t* pa
 	 * unspecified fields should be filled in now.
 	 */
 	iss          = random_syn;
-	seg_seq      = odp_be_to_cpu_32(th->sequence_number)+1;
+	seg_seq      = odp_be_to_cpu_32(th->sequence_number);
 	
 	pcb->rcv.nxt = seg_seq+1;
 	pcb->irs     = seg_seq;
