@@ -64,14 +64,16 @@ netpp_retcode_t fastnet_tcp_input_listen(odp_packet_t pkt, fastnet_tcp_pcb_t* pa
 	pcb = odp_buffer_addr(sock);
 	
 	/*
-	 * Copy the PCB.
+	 * Copy the PCB Fragments.
 	 */
-	*pcb = *parent_pcb;
+	pcb->rcv = parent_pcb->rcv;
+	pcb->snd = parent_pcb->snd;
 	
 	/*
 	 * Set the Address pair to the PCB.
 	 */
 	((fastnet_sockstruct_t*) pcb)->key = *key;
+	((fastnet_sockstruct_t*) pcb)->type_tag = IP_PROTOCOL_TCP;
 	fastnet_socket_construct(sock);
 	
 	/*
@@ -111,12 +113,15 @@ netpp_retcode_t fastnet_tcp_input_ll(odp_packet_t pkt, fastnet_socket_t sock, so
 	int send_rst = 0;
 	fastnet_tcp_pcb_t* pcb = odp_buffer_addr(sock);
 	
+	if(odp_unlikely( (((fastnet_sockstruct_t*) pcb)->type_tag) != IP_PROTOCOL_TCP))
+		return NETPP_DROP;
+	
 	odp_ticketlock_lock(&(pcb->lock));
 	
 	switch(pcb->state){
 	case LISTEN:
 		odp_ticketlock_unlock(&(pcb->lock));
-		//ret = fastnet_tcp_input_listen(pkt,key,&send_rst);
+		ret = fastnet_tcp_input_listen(pkt,pcb,key,&send_rst);
 		
 		return ret;
 	}
