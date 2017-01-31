@@ -19,6 +19,7 @@
 #include <net/nd6_cache.h>
 #include <net/std_defs.h>
 #include <net/header/layer4.h>
+#include <net/socket_key.h>
 
 #if 1
 #define ASSERT(i) if(!(i)) fastnet_abort()
@@ -117,6 +118,7 @@ static void init(){
 
 
 void fastnet_tlp_init(){
+	fastnet_socket_init();
 	fastnet_initialize_ipmac_cache();
 	fastnet_nd6_cache_init();
 	init();
