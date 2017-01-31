@@ -14,6 +14,9 @@
  *   limitations under the License.
  */
 #include <net/checksum.h>
+#include <net/header/iphdr.h>
+#include <net/header/ip6hdr.h>
+#include <net/safe_packet.h>
 
 static inline uint16_t cksum_finalize(uint32_t chk){
 	uint16_t res = (uint16_t)chk;
@@ -170,5 +173,19 @@ uint16_t fastnet_ip6_checksum(odp_packet_t pkt,ipv6_addr_t src,ipv6_addr_t dst,u
 	return fastnet_checksum(pkt,offset,checksum,NULL,0);
 }
 
-
+uint16_t fastnet_tcpudp_input_checksum(odp_packet_t pkt,uint8_t prot) {
+	fnet_ip_header_t*  ip;
+	fnet_ip6_header_t* ip6;
+	
+	if(odp_packet_has_ipv4(pkt)){
+		ip = fastnet_safe_l3(pkt,sizeof(fnet_ip_header_t));
+		if(odp_unlikely(ip==NULL)) return ~0;
+		return fastnet_ip4_checksum(pkt, ip->source_addr, ip->destination_addr,prot);
+	}else{
+		ip6 = fastnet_safe_l3(pkt,sizeof(fnet_ip6_header_t));
+		if(odp_unlikely(ip6==NULL)) return ~0;
+		return fastnet_ip6_checksum(pkt,ip6->source_addr,ip6->destination_addr,prot);
+	}
+	return ~0;
+}
 

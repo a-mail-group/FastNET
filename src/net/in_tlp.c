@@ -18,6 +18,7 @@
 #include <net/ip6ext.h>
 #include <net/packet_input.h>
 #include <net/header/layer4.h>
+#include <net/socket_tcp.h>
 
 static
 netpp_retcode_t def_protocol(odp_packet_t pkt){
@@ -29,6 +30,7 @@ struct fn_transport_layer_protocol fn_in_protocols[] = {
 	{
 		.in_protocol = IP_PROTOCOL_TCP,
 		.in_hook = fastnet_tcp_input,
+		.tlp_init = fastnet_tcp_initpool,
 	},
 	{
 		.in_protocol = IP_PROTOCOL_UDP,
