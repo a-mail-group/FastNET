@@ -32,30 +32,57 @@ enum {
 /* netpp_retcode_t fastnet_tcp_input_listen(odp_packet_t pkt, fastnet_socket_t sock, fastnet_tcp_pcb_t* pcb, socket_key_t *key,int *send_rst) */
 
 
+
 static
 netpp_retcode_t fastnet_tcp_input_listen(odp_packet_t pkt, fastnet_tcp_pcb_t* parent_pcb, socket_key_t *key,int *send_rst) {
 	fastnet_socket_t sock;
 	fastnet_tcp_pcb_t*    pcb;
 	uint32_t seg_seq,iss;
-	*send_rst = 1;
+	//*send_rst = 1;
 	
 	
 	fnet_tcp_header_t* th = fastnet_safe_l3(pkt,sizeof(fnet_tcp_header_t));
 	if(odp_unlikely(th==NULL)) return NETPP_DROP;
 	
 	uint16_t flags = odp_be_to_cpu_16(th->hdrlength__flags);
+	
 	/*
 	 * If the state is LISTEN then
-	 *  first check for an RST  : If RST Then Ignore
-	 *  second check for an ACK : If ACK Then <SEQ=SEG.ACK><CTL=RST>
-	 *  third check for a SYN   : Unless SYN <SEQ=SEG.ACK><CTL=RST>
-	*/
+	 *  1. check for an RST  : If RST Then DROP
+	 *  2. check for an ACK  : If ACK Then <SEQ=SEG.ACK><CTL=RST>
+	 *  3. check for a SYN   : Unless SYN <SEQ=SEG.ACK><CTL=RST>
+	 *
+	 * The Implementation is radically optimized:
+	 *  IF (  RST==0  and  ACK==0  and  SYN==1  ) THEN
+	 *     -- The conditions 1., 2. and 3. are all true.
+	 *  ELSE
+	 *     -- Eighter the condition 1., 2., or 3. is false.
+	 *     IF (  RST==1  ) THEN
+	 *        -- The condition 1. is false, do drop the packet
+	 *        DROP PACKET;
+	 *     ELSE
+	 *        -- Eighter the condition 2., or 3. is false.
+	 *        SEND <SEQ=SEG.ACK><CTL=RST>;
+	 *     END IF
+	 *  END IF
+	 */
+	
+	/*
+	 * UNLESS (  RST==0  and  ACK==0  and  SYN==1  ) IS TRUE:
+	 */
 	if(odp_unlikely( (flags&TCP_LISTEN_MASK) != FNET_TCP_SGT_SYN)){
 		/*
-		 * If RST, Ignore, otherwise <SEQ=SEG.ACK><CTL=RST>
+		 * IF (  RST==1  ) THEN
 		 */
-		*send_rst = (flags&FNET_TCP_SGT_RST)?0:1;
-		return NETPP_DROP;
+		if(flags&FNET_TCP_SGT_RST){
+			return NETPP_DROP;
+		}else{
+			/*
+			 * ELSE:
+			 *    SEND <SEQ=SEG.ACK><CTL=RST>
+			 */
+			return fastnet_tcp_output_flags(pkt,key,odp_be_to_cpu_32(th->ack_number),0,FNET_TCP_SGT_RST);
+		}
 	}
 	
 	sock = fastnet_tcp_allocate();
@@ -70,7 +97,7 @@ netpp_retcode_t fastnet_tcp_input_listen(odp_packet_t pkt, fastnet_tcp_pcb_t* pa
 	pcb->snd = parent_pcb->snd;
 	
 	/*
-	 * Set the Address pair to the PCB.
+	 * Set the Address pair to the PCB and Initialize it (hash & reference count).
 	 */
 	((fastnet_sockstruct_t*) pcb)->key = *key;
 	((fastnet_sockstruct_t*) pcb)->type_tag = IP_PROTOCOL_TCP;
@@ -98,12 +125,29 @@ netpp_retcode_t fastnet_tcp_input_listen(odp_packet_t pkt, fastnet_tcp_pcb_t* pa
 	pcb->irs     = seg_seq;
 	pcb->iss     = iss;
 	pcb->snd.nxt = iss+1;
+	pcb->snd.una = iss;
 	pcb->state   = SYN_RECEIVED;
 	
-	/* TODO: send ack.*/
-	
+	/*
+	 * Prevent a Reset from being send.
+	 */
 	*send_rst = 0;
-	return NETPP_DROP;
+	
+	/*
+	 * Insert socket into he socket table.
+	 */
+	fastnet_socket_insert(sock);
+	
+	/* Drop socket reference. */
+	fastnet_socket_put(sock);
+	
+	/*
+	 * SEND <SEQ=ISS><ACK=RCV.NXT><CTL=SYN,ACK>
+	 */
+	return fastnet_tcp_output_flags(pkt,key,
+		/*SEQ=*/ odp_be_to_cpu_32(iss),
+		/*ACK=*/ odp_be_to_cpu_32(seg_seq+1),
+		/*CTL=*/ FNET_TCP_SGT_SYN | FNET_TCP_SGT_ACK);
 }
 
 
@@ -122,7 +166,9 @@ netpp_retcode_t fastnet_tcp_input_ll(odp_packet_t pkt, fastnet_socket_t sock, so
 	case LISTEN:
 		odp_ticketlock_unlock(&(pcb->lock));
 		ret = fastnet_tcp_input_listen(pkt,pcb,key,&send_rst);
-		
+		if(odp_unlikely(send_rst)){
+			// fastnet_tcp_output_flags(ODP_PACKET_INVALID,key,odp_be_to_cpu_32(th->ack_number),0,FNET_TCP_SGT_RST);
+		}
 		return ret;
 	}
 	odp_ticketlock_unlock(&(pcb->lock));
