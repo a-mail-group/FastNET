@@ -36,6 +36,7 @@ net += src/net/fastnet_arp.o
 net += src/net/fastnet_checksum.o
 
 net += src/net/fastnet_tcp_sockets.o
+net += src/net/fastnet_tcp_state.o
 
 net += src/net/basis_input.o
 net += src/net/fnv1a.o

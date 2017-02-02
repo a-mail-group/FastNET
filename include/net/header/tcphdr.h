@@ -28,7 +28,7 @@ typedef struct ODP_PACKED
     uint16_t   source_port     ;       /* Source port number.*/
     uint16_t   destination_port    ;   /* Destination port number.*/
     uint32_t   sequence_number     ;   /* Sequence Number.*/
-    uint32_t   ack_number  ;           /* Sequence Number.*/
+    uint32_t   ack_number  ;           /* Ack Number.*/
     uint16_t   hdrlength__flags ;      /* (4 bits) Number of 32 bit words in the TCP Header. (6 bits) Reserved. (6bits) Flags.*/
     uint16_t   window  ;               /* Window.*/
     uint16_t   checksum    ;           /* Checksum.*/

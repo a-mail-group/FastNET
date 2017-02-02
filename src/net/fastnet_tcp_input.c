@@ -32,7 +32,7 @@ enum {
 /* netpp_retcode_t fastnet_tcp_input_listen(odp_packet_t pkt, fastnet_socket_t sock, fastnet_tcp_pcb_t* pcb, socket_key_t *key,int *send_rst) */
 
 
-
+#if 0
 static
 netpp_retcode_t fastnet_tcp_input_listen(odp_packet_t pkt, fastnet_tcp_pcb_t* parent_pcb, socket_key_t *key,int *send_rst) {
 	fastnet_socket_t sock;
@@ -41,7 +41,7 @@ netpp_retcode_t fastnet_tcp_input_listen(odp_packet_t pkt, fastnet_tcp_pcb_t* pa
 	//*send_rst = 1;
 	
 	
-	fnet_tcp_header_t* th = fastnet_safe_l3(pkt,sizeof(fnet_tcp_header_t));
+	fnet_tcp_header_t* th = fastnet_safe_l4(pkt,sizeof(fnet_tcp_header_t));
 	if(odp_unlikely(th==NULL)) return NETPP_DROP;
 	
 	uint16_t flags = odp_be_to_cpu_16(th->hdrlength__flags);
@@ -150,12 +150,14 @@ netpp_retcode_t fastnet_tcp_input_listen(odp_packet_t pkt, fastnet_tcp_pcb_t* pa
 		/*CTL=*/ FNET_TCP_SGT_SYN | FNET_TCP_SGT_ACK);
 }
 
-
 static
 netpp_retcode_t fastnet_tcp_input_ll(odp_packet_t pkt, fastnet_socket_t sock, socket_key_t *key){
 	netpp_retcode_t ret = NETPP_DROP;
 	int send_rst = 0;
 	fastnet_tcp_pcb_t* pcb = odp_buffer_addr(sock);
+	
+	fnet_tcp_header_t* th = fastnet_safe_l4(pkt,sizeof(fnet_tcp_header_t));
+	if(odp_unlikely(th==NULL)) return NETPP_DROP;
 	
 	if(odp_unlikely( (((fastnet_sockstruct_t*) pcb)->type_tag) != IP_PROTOCOL_TCP))
 		return NETPP_DROP;
@@ -167,7 +169,7 @@ netpp_retcode_t fastnet_tcp_input_ll(odp_packet_t pkt, fastnet_socket_t sock, so
 		odp_ticketlock_unlock(&(pcb->lock));
 		ret = fastnet_tcp_input_listen(pkt,pcb,key,&send_rst);
 		if(odp_unlikely(send_rst)){
-			// fastnet_tcp_output_flags(ODP_PACKET_INVALID,key,odp_be_to_cpu_32(th->ack_number),0,FNET_TCP_SGT_RST);
+			fastnet_tcp_output_flags(ODP_PACKET_INVALID,key,odp_be_to_cpu_32(th->ack_number),0,FNET_TCP_SGT_RST);
 		}
 		return ret;
 	}
@@ -176,23 +178,29 @@ netpp_retcode_t fastnet_tcp_input_ll(odp_packet_t pkt, fastnet_socket_t sock, so
 	return ret;
 }
 
-
+#endif
 
 netpp_retcode_t fastnet_tcp_input(odp_packet_t pkt) {
 	socket_key_t key;
+	fastnet_socket_t sock;
 	
 	/*
 	 * Check checksum.
 	 */
 	if(odp_unlikely(fastnet_tcpudp_input_checksum(pkt,IP_PROTOCOL_TCP)!=0)) return NETPP_DROP;
+	
+	/*
+	 * Socket Lookup.
+	 */
 	fastnet_socket_key_obtain(pkt,&key);
 	key.layer4_version = IP_PROTOCOL_TCP;
+	sock = fastnet_socket_lookup(&key);
+	if(odp_likely(sock==ODP_BUFFER_INVALID)) return NETPP_DROP; /* XXX: should send RST. */
 	
-	fnet_tcp_header_t* th = fastnet_safe_l3(pkt,sizeof(fnet_tcp_header_t));
+	fnet_tcp_header_t* th = fastnet_safe_l4(pkt,sizeof(fnet_tcp_header_t));
 	if(odp_unlikely(th==NULL)) return NETPP_DROP;
 	
-	NET_LOG("TCP segment: %d->%d\n",(int)odp_be_to_cpu_16(th->source_port),(int)odp_be_to_cpu_16(th->destination_port));
-	return NETPP_DROP;
+	return fastnet_tcp_process(pkt,&key,sock);
 }
 
 
