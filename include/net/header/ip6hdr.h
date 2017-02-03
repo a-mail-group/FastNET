@@ -64,3 +64,5 @@ typedef struct ODP_PACKED
                                         * a Routing header is present). */
 } fnet_ip6_header_t;
 
+#define IPV6_HDR_LENGTH_OFFSET 4
+

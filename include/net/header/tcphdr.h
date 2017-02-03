@@ -35,6 +35,19 @@ typedef struct ODP_PACKED
     uint16_t   urgent_ptr  ;           /* Urgent pointer.*/
 } fnet_tcp_header_t;
 
+typedef struct ODP_PACKED
+{
+    uint32_t   sequence_number     ;   /* Sequence Number.*/
+    uint32_t   ack_number  ;           /* Ack Number.*/
+    uint16_t   hdrlength__flags ;      /* (4 bits) Number of 32 bit words in the TCP Header. (6 bits) Reserved. (6bits) Flags.*/
+    uint16_t   window  ;               /* Window.*/
+    uint16_t   checksum    ;           /* Checksum.*/
+    uint16_t   urgent_ptr  ;           /* Urgent pointer.*/
+} fnet_tcp_parthdr_t;
+
+/* Offset of the checksum field. */
+#define TCP_HDR_CHECKSUM_OFFSET 16
+
 #define FNET_TCP_SGT_FIN            0x01
 #define FNET_TCP_SGT_SYN            0x02
 #define FNET_TCP_SGT_RST            0x04

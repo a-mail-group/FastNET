@@ -32,12 +32,14 @@ enum {
 
 void fastnet_tcp_initpool(){
 	odp_pool_param_t epool;
+	odp_pool_param_init(&epool);
 	epool.type = ODP_POOL_BUFFER;
 	epool.buf.num   = 512*1024;
 	epool.buf.align = 8;
 	epool.buf.size  = sizeof(fastnet_tcp_pcb_t);
 	objects = odp_pool_create("tcp_pcb_pool",&epool);
 	if(objects==ODP_POOL_INVALID) fastnet_abort();
+	odp_pool_param_init(&epool);
 	epool.type = ODP_POOL_PACKET;
 	epool.pkt.num        = 512*1024;
 	epool.pkt.len        = MAX_TCP_IP_ETH_HDR;

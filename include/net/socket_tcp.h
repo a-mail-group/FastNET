@@ -70,6 +70,9 @@ typedef struct {
 		
 		/* Time-Stamp of the Ethernet header (in use if eth_lifetime > 0)*/
 		odp_time_t   eth_tstamp;
+		
+		/* Is NULL if There is no Ethernet header in the buffer and eth_lifetime > 0 */
+		nif_t*       eth_nif;
 	} tcpiphdr;
 	
 } fastnet_tcp_pcb_t;
@@ -89,9 +92,14 @@ netpp_retcode_t fastnet_tcp_handshake_listen (odp_packet_t pkt,socket_key_t *key
 
 netpp_retcode_t fastnet_tcp_output_flags(odp_packet_t pkt,socket_key_t *key,uint32_t seq,uint32_t ack,uint16_t flags);
 
+netpp_retcode_t fastnet_tcp_output_flags_wnd(odp_packet_t pkt,socket_key_t *key,uint32_t seq,uint32_t ack,uint32_t wnd,uint16_t flags);
+
 /*
  * This function constructs a TCP/IP header in a given buffer (type is odp_packet_t).
  * odp_packet_l4_offset() must be set.
  */
 void fastnet_tcp_segmout_create_header_buf(odp_packet_t pkt,socket_key_t *key);
 
+netpp_retcode_t fastnet_tcp_sendout_ll(odp_packet_t pkt,fastnet_tcp_pcb_t* pcb,nif_t* nif,uint16_t length);
+
+int fastnet_tcp_add_header(odp_packet_t pkt,fastnet_tcp_pcb_t* __restrict__ pcb,odp_time_t now,nif_t** nifp);

@@ -146,9 +146,10 @@ netpp_retcode_t fastnet_tcp_internal_listen(odp_packet_t pkt, fastnet_tcp_pcb_t*
 	/*
 	 * SEND <SEQ=ISS><ACK=RCV.NXT><CTL=SYN,ACK>
 	 */
-	return fastnet_tcp_output_flags(pkt,key,
-		/*SEQ=*/ odp_be_to_cpu_32(iss),
-		/*ACK=*/ odp_be_to_cpu_32(seg_seq+1),
+	return fastnet_tcp_output_flags_wnd(pkt,key,
+		/*SEQ=*/ iss,
+		/*ACK=*/ seg_seq+1,
+		/*WND=*/ pcb->rcv.wnd,
 		/*CTL=*/ FNET_TCP_SGT_SYN | FNET_TCP_SGT_ACK);
 }
 

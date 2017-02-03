@@ -34,6 +34,10 @@ typedef struct ODP_PACKED
     ipv4_addr_t destination_addr       ;   /**< destination address */
 } fnet_ip_header_t;
 
+/* Offset of the checksum field. */
+#define IPV4_HDR_CHECKSUM_OFFSET 10
+
+#define IPV4_HDR_LENGTH_OFFSET 2
 
 #define FNET_IP_TOS_NORMAL      0x00
 #define FNET_IP_TOS_LOWDELAY    0x10
