@@ -85,6 +85,13 @@ void fastnet_tcp_socket_finalize(fastnet_socket_t sock);
 
 netpp_retcode_t fastnet_tcp_process(odp_packet_t pkt,socket_key_t *key,fastnet_socket_t sock);
 
+netpp_retcode_t fastnet_tcp_handshake_listen (odp_packet_t pkt,socket_key_t *key,fastnet_socket_t sock);
+
 netpp_retcode_t fastnet_tcp_output_flags(odp_packet_t pkt,socket_key_t *key,uint32_t seq,uint32_t ack,uint16_t flags);
 
+/*
+ * This function constructs a TCP/IP header in a given buffer (type is odp_packet_t).
+ * odp_packet_l4_offset() must be set.
+ */
+void fastnet_tcp_segmout_create_header_buf(odp_packet_t pkt,socket_key_t *key);
 

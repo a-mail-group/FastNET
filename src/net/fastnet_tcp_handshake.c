@@ -93,6 +93,11 @@ netpp_retcode_t fastnet_tcp_internal_listen(odp_packet_t pkt, fastnet_tcp_pcb_t*
 	pcb = odp_buffer_addr(sock);
 	
 	/*
+	 * Precompute TCP/IP header. This will accelerate the creation of TCP/IP packets.
+	 */
+	fastnet_tcp_segmout_create_header_buf(pcb->tcpiphdr.buf,key);
+	
+	/*
 	 * Copy the PCB Fragments.
 	 */
 	pcb->rcv = parent_pcb->rcv;
