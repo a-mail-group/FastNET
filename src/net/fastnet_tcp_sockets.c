@@ -80,3 +80,9 @@ fastnet_socket_t fastnet_tcp_allocate_with_hdr(){
 	return handle;
 }
 
+void fastnet_tcp_socket_finalize(fastnet_socket_t sock){
+	fastnet_tcp_pcb_t* ptr;
+	ptr = odp_buffer_addr(sock);
+	if(ptr->tcpiphdr.buf!=ODP_PACKET_INVALID) odp_packet_free(ptr->tcpiphdr.buf);
+}
+

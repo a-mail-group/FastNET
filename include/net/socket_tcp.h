@@ -81,6 +81,8 @@ fastnet_socket_t fastnet_tcp_allocate();
 
 fastnet_socket_t fastnet_tcp_allocate_with_hdr();
 
+void fastnet_tcp_socket_finalize(fastnet_socket_t sock);
+
 netpp_retcode_t fastnet_tcp_process(odp_packet_t pkt,socket_key_t *key,fastnet_socket_t sock);
 
 netpp_retcode_t fastnet_tcp_output_flags(odp_packet_t pkt,socket_key_t *key,uint32_t seq,uint32_t ack,uint16_t flags);

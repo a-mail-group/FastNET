@@ -52,6 +52,7 @@ void fastnet_socket_put(fastnet_socket_t sock) {
 	 * Unlikely, because most decrements don't reach 0 (statistically).
 	 */
 	if(odp_unlikely(odp_atomic_fetch_dec_u32(&(sockinst->refc))==1)) {
+		sockinst->finalizer(sock);
 		odp_buffer_free(sock);
 	}
 }
@@ -68,12 +69,20 @@ uint32_t ht_hash(socket_key_t *key){
 	return fastnet_fnv1a(fastnet_fnv1a_init(),(uint8_t*)key,sizeof(socket_key_t));
 }
 
-void fastnet_socket_construct(fastnet_socket_t sock) {
+static
+void fastnet_socket_finalizer_def(fastnet_socket_t sock){}
+
+void fastnet_socket_construct(fastnet_socket_t sock,fastnet_socket_finalizer_t finalizer) {
 	fastnet_sockstruct_t* sockinst;
 	sockinst = odp_buffer_addr(sock);
 	odp_atomic_init_u32(&(sockinst->refc),1);
 	sockinst->is_ht = 0;
 	sockinst->hash = ht_hash(&(sockinst->key));
+	
+	if(odp_likely(finalizer!=NULL))
+		sockinst->finalizer = finalizer;
+	else
+		sockinst->finalizer = fastnet_socket_finalizer_def;
 }
 
 static

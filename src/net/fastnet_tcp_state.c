@@ -64,9 +64,6 @@ void fastnet_tcp_seg_info(fnet_tcp_header_t* th,struct seg_info * __restrict__ s
 static netpp_retcode_t fastnet_tcp_closed (odp_packet_t pkt,socket_key_t *key,fastnet_socket_t sock) NOBODY
 static netpp_retcode_t fastnet_tcp_synsent(odp_packet_t pkt,socket_key_t *key,fastnet_socket_t sock) NOBODY
 
-static netpp_retcode_t fastnet_tcp_listen (odp_packet_t pkt,socket_key_t *key,fastnet_socket_t sock) NOBODY
-
-
 static netpp_retcode_t fastnet_tcp_seqcheck(struct seg_info * __restrict__ seg,fastnet_tcp_pcb_t* __restrict__ pcb) {
 	uint32_t end_win;
 	uint32_t end_seg;
@@ -121,7 +118,7 @@ netpp_retcode_t fastnet_tcp_process(odp_packet_t pkt,socket_key_t *key,fastnet_s
 	case CLOSED:
 		return fastnet_tcp_closed(pkt,key,sock);
 	case LISTEN:
-		return fastnet_tcp_listen(pkt,key,sock);
+		return fastnet_tcp_handshake_listen(pkt,key,sock);
 	case SYN_SENT:
 		return fastnet_tcp_synsent(pkt,key,sock);
 	}

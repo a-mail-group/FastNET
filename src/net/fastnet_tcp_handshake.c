@@ -103,7 +103,7 @@ netpp_retcode_t fastnet_tcp_internal_listen(odp_packet_t pkt, fastnet_tcp_pcb_t*
 	 */
 	((fastnet_sockstruct_t*) pcb)->key = *key;
 	((fastnet_sockstruct_t*) pcb)->type_tag = IP_PROTOCOL_TCP;
-	fastnet_socket_construct(sock);
+	fastnet_socket_construct(sock,fastnet_tcp_socket_finalize);
 	
 	/*
 	 * Set RCV.NXT to SEG.SEQ+1, IRS is set to SEG.SEQ and any other

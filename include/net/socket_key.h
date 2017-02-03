@@ -28,6 +28,8 @@ typedef struct {
 
 typedef odp_buffer_t fastnet_socket_t;
 
+typedef void (*fastnet_socket_finalizer_t)(fastnet_socket_t sock);
+
 typedef struct{
 	fastnet_socket_t next_ht;
 	odp_atomic_u32_t refc;
@@ -36,6 +38,9 @@ typedef struct{
 	socket_key_t key;
 	uint32_t     hash;
 	uint32_t     type_tag;
+	
+	/* Finalizer */
+	fastnet_socket_finalizer_t finalizer;
 } fastnet_sockstruct_t;
 
 /*
@@ -75,7 +80,7 @@ void fastnet_socket_grab(fastnet_socket_t sock);
 /*
  * Initializes the Header.
  */
-void fastnet_socket_construct(fastnet_socket_t sock);
+void fastnet_socket_construct(fastnet_socket_t sock,fastnet_socket_finalizer_t finalizer);
 
 /*
  * Lookup socket.
