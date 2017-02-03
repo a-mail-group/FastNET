@@ -22,12 +22,12 @@ static odp_pool_t hdrbufs;
 enum {
 	/*
 	 * Ethernet header (14 bytes),
-	 * VLAN tag(2 bytes),
+	 * VLAN tag(4 bytes),
 	 * IPv6 header (40 bytes),
 	 * TCP header(20 bytes)
 	 */
-	MAX_TCP_IP_ETH_HDR = 14 + 2 + 40 + 20,
-	MAX_IP_ETH_HDR = 14 + 2 + 40,
+	MAX_TCP_IP_ETH_HDR = 14 + 4 + 40 + 20,
+	MAX_IP_ETH_HDR = 14 + 4 + 40,
 };
 
 void fastnet_tcp_initpool(){

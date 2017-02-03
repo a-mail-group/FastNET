@@ -22,6 +22,14 @@
 #include <net/socket_tcp.h>
 #include <net/header/layer4.h>
 
+enum {
+	/*
+	 * Ethernet header (14 bytes),
+	 * VLAN tag(4 bytes),
+	 */
+	ETHERNET_HEADER_LEN = 14 + 4,
+};
+
 netpp_retcode_t fastnet_tcp_output_flags(odp_packet_t pkt,socket_key_t *key,uint32_t seq,uint32_t ack,uint16_t flags){
 	odp_pool_t        pool;
 	fnet_tcp_header_t header;
@@ -39,7 +47,7 @@ netpp_retcode_t fastnet_tcp_output_flags(odp_packet_t pkt,socket_key_t *key,uint
 		ihdrlen = sizeof(fnet_ip_header_t);
 	}
 	
-	full_len = sizeof(fnet_tcp_header_t) + ihdrlen;
+	full_len = ETHERNET_HEADER_LEN + sizeof(fnet_tcp_header_t) + ihdrlen;
 	
 	if(pkt==ODP_PACKET_INVALID){
 		pool = odp_pool_lookup("fn_pktout");
@@ -65,9 +73,9 @@ netpp_retcode_t fastnet_tcp_output_flags(odp_packet_t pkt,socket_key_t *key,uint
 	header.window = 0;
 	header.checksum = 0;
 	header.urgent_ptr = 0;
-	odp_packet_l3_offset_set(pkt,0);
-	odp_packet_l4_offset_set(pkt,ihdrlen);
-	odp_packet_copy_from_mem(pkt,ihdrlen,sizeof(header),&header);
+	odp_packet_l3_offset_set(pkt,ETHERNET_HEADER_LEN);
+	odp_packet_l4_offset_set(pkt,ETHERNET_HEADER_LEN+ihdrlen);
+	odp_packet_copy_from_mem(pkt,ETHERNET_HEADER_LEN+ihdrlen,sizeof(header),&header);
 	
 	
 	
@@ -79,7 +87,7 @@ netpp_retcode_t fastnet_tcp_output_flags(odp_packet_t pkt,socket_key_t *key,uint
 		ihdr.ip6.hop_limit             = 64;
 		ihdr.ip6.source_addr           = key->dst_ip;
 		ihdr.ip6.destination_addr      = key->src_ip;
-		odp_packet_copy_from_mem(pkt,0,sizeof(ihdr.ip6),&ihdr.ip6);
+		odp_packet_copy_from_mem(pkt,ETHERNET_HEADER_LEN,sizeof(ihdr.ip6),&ihdr.ip6);
 	}else{
 		/* IPv4 */
 		ihdr.ip.version__header_length = 0x45;
@@ -92,7 +100,7 @@ netpp_retcode_t fastnet_tcp_output_flags(odp_packet_t pkt,socket_key_t *key,uint
 		ihdr.ip.checksum               = 0;
 		ihdr.ip.source_addr            = key->dst_ip.addr32[4];
 		ihdr.ip.destination_addr       = key->src_ip.addr32[4];
-		odp_packet_copy_from_mem(pkt,0,sizeof(ihdr.ip),&ihdr.ip);
+		odp_packet_copy_from_mem(pkt,ETHERNET_HEADER_LEN,sizeof(ihdr.ip),&ihdr.ip);
 	}
 	
 	return NETPP_DROP;
