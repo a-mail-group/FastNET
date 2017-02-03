@@ -35,6 +35,7 @@ net += src/net/fastnet_pkt_output.o
 net += src/net/fastnet_arp.o
 net += src/net/fastnet_checksum.o
 
+net += src/net/fastnet_tcp_handshake.o
 net += src/net/fastnet_tcp_sockets.o
 net += src/net/fastnet_tcp_state.o
 

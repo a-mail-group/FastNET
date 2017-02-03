@@ -61,12 +61,25 @@ typedef struct {
 	uint32_t iss; /* initial send sequence number */
 	uint32_t irs; /* initial receive sequence number */
 	
+	struct {
+		/* Buffer containing the TCP/IP header. */
+		odp_packet_t buf;
+		
+		/* Lifetime of the Ethernet header (MS); */
+		uint64_t     eth_lifetime;
+		
+		/* Time-Stamp of the Ethernet header (in use if eth_lifetime > 0)*/
+		odp_time_t   eth_tstamp;
+	} tcpiphdr;
+	
 } fastnet_tcp_pcb_t;
 
 
 void fastnet_tcp_initpool();
 
 fastnet_socket_t fastnet_tcp_allocate();
+
+fastnet_socket_t fastnet_tcp_allocate_with_hdr();
 
 netpp_retcode_t fastnet_tcp_process(odp_packet_t pkt,socket_key_t *key,fastnet_socket_t sock);
 
