@@ -76,7 +76,7 @@ void fastnet_nd6_cache_init(){
 	nd6_cache_t* ci;
 	
 	odp_pool_param_t epool;
-	epool.type = ODP_EVENT_BUFFER;
+	epool.type = ODP_POOL_BUFFER;
 	epool.buf.num   = 512*1024;
 	epool.buf.align = 8;
 	

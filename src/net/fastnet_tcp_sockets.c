@@ -20,7 +20,7 @@ static odp_pool_t objects;
 
 void fastnet_tcp_initpool(){
 	odp_pool_param_t epool;
-	epool.type = ODP_EVENT_BUFFER;
+	epool.type = ODP_POOL_BUFFER;
 	epool.buf.num   = 512*1024;
 	epool.buf.align = 8;
 	epool.buf.size  = sizeof(fastnet_tcp_pcb_t);
@@ -34,6 +34,7 @@ fastnet_socket_t fastnet_tcp_allocate(){
 	if(handle!=ODP_BUFFER_INVALID){
 		ptr = odp_buffer_addr(handle);
 		odp_ticketlock_init(&(ptr->lock));
+		ptr->tcpiphdr.buf = ODP_PACKET_INVALID;
 	}
 	return handle;
 }

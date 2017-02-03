@@ -128,7 +128,7 @@ static int ip_entry_overwrite(ipv4_mac_entry_t* entry,ipv4_mac_entry_t* key) {
 void fastnet_initialize_ipmac_cache(){
 	int i;
 	odp_pool_param_t epool;
-	epool.type = ODP_EVENT_BUFFER;
+	epool.type = ODP_POOL_BUFFER;
 	epool.buf.num   = 512*1024;
 	epool.buf.size  = sizeof(ipv4_mac_entry_t);
 	epool.buf.align = 8;
